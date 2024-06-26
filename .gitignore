@@ -1,4 +1,12 @@
 # Ignore build, install, and log directories
 /build/
 /install/
-/log/
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore generated code
+c_generated_code/
+
+# Ignore acados_ocp.json
+acados_ocp.json

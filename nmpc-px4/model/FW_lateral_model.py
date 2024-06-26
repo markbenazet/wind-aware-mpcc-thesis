@@ -23,20 +23,20 @@ class FixedWingLateralModel():
         a_y = cs.MX.sym('a_y')
         yaw_rate = cs.MX.sym('yaw_rate')
 
-        # DState and Input vectors
+        # State and Input vectors
         states = cs.vertcat(x, y, V, yaw)
         controls = cs.vertcat(a_x, a_y, yaw_rate)
 
         # Define the dynamics equations
         dx_dt = V * cs.cos(yaw)
         dy_dt = V * cs.sin(yaw)
-        dV_dt = a_x
+        dV_dt = a_x*cs.cos(yaw) + a_y*cs.sin(yaw)
         dyaw_dt = yaw_rate
 
         # Concatenate the state derivatives
         state_derivatives = cs.vertcat(dx_dt, dy_dt, dV_dt, dyaw_dt)
 
-        # Create an AcadosModel object
+        # AcadosModel object
         model = AcadosModel()
         model.f_expl_expr = state_derivatives
         model.x = states
@@ -44,9 +44,3 @@ class FixedWingLateralModel():
         model.name = self.model_name
 
         return model
-
-if __name__ == "__main__":
-    # Create an instance of the FixedWingLateralModel class
-    fw_model = FixedWingLateralModel()
-    model = fw_model.fixed_wing_lateral_model()
-    print("AcadosModel created with name:", model.name)
