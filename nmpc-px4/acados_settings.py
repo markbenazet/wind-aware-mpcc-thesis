@@ -53,27 +53,27 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.dims.N = N_horizon
 
     # Set cost
-    Q_mat = np.diag([100, 100, 1e-8, 1e-8])  # Adjust as needed
-    R_mat = np.eye(nu)
+    Q_mat = np.diag([0.01, 1, 0.01, 0.01])  # Adjust as needed
+    R_mat = np.diag([0.01, 10])
 
     unscale = N_horizon / Tf
 
     # Initial reference based on the first point in path_points
-    x_ref, y_ref = path_points[0]
+    n_ref, e_ref = path_points[0]
 
     ocp.cost.cost_type = 'NONLINEAR_LS'
     ocp.model.cost_y_expr = cs.vertcat(ocp.model.x, ocp.model.u)
-    ocp.cost.yref = np.array([x_ref, y_ref, 0.0, 0.0, 0.0, 0.0, 0.0])
+    ocp.cost.yref = np.array([n_ref, e_ref, 0.0, 0.0, 0.0, 0.0])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
     # Set constraints
-    # ocp.constraints.lbu = np.array([9.81, -19.62, -2.0])
-    # ocp.constraints.ubu = np.array([19.62, 19.62, 2.0])
-    # ocp.constraints.idxbu = np.array([0, 1, 2])
+    ocp.constraints.lbu = np.array([-19.62, -1.57079632679])
+    ocp.constraints.ubu = np.array([19.62, 1.57079632679])
+    ocp.constraints.idxbu = np.array([0, 1])
 
-    # ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 0.0, -1.0e19])
-    # ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 40, 1.0e19])
-    # ocp.constraints.idxbx = np.array([0, 1, 2, 3])
+    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 0.0, -1.0e19])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 40.0, 1.0e19])
+    ocp.constraints.idxbx = np.array([0, 1, 2, 3]) 
 
     ocp.constraints.x0 = x0
 

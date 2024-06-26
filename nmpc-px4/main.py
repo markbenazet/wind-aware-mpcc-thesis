@@ -12,17 +12,16 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 20  # Example prediction horizon (adjust as needed)
-    Tf = 5.0  # Example prediction horizon duration (adjust as needed)
+    N_horizon = 40 
+    Tf = 5.0  
 
-    # Initial state for MPC solver (adjust as needed)
-    x0 = np.array([0.0, 0.0, 10.0, 0.0])  # Example initial state (x, y, V, yaw)
+    # Initial state for MPC solver 
+    x0 = np.array([0.0, 0.0, 0.0, 0.0])  # initial state (x, y, V, yaw)
 
-    # Correct way to pass x0 as an argument with its name specified
     ocp_solver, acados_integrator = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=False)
 
-    # Threshold distance to switch to the next point (adjust as needed)
-    threshold_distance = 5.0  # Example threshold distance
+    # Threshold distance to switch to the next point 
+    threshold_distance = 7.0  # threshold distance
 
     # Lists to store state and input values for debugging
     state_history = []
@@ -41,13 +40,13 @@ def main():
         current_point = np.array(path_points[i])
 
         # Print the current waypoint index
-        #print(f"Current state: {current_state}")
+        print(f"Current state: {current_state}")
         print(f"Current waypoint: {current_point}")
 
         # Update MPC reference
         ocp_solver.set(0, 'lbx', current_state)
         ocp_solver.set(0, 'ubx', current_state)
-        ocp_solver.set(0, 'yref', np.concatenate((current_point, np.zeros(5))))
+        ocp_solver.set(0, 'yref', np.concatenate((current_point, np.zeros(4))))
 
         # Solve MPC problem
         status = ocp_solver.solve()
@@ -75,10 +74,10 @@ def main():
 
         # Plotting in real-time
         axs[0].cla()
-        axs[0].plot(current_state[0], current_state[1], 'bo')  # Plot current UAV position
-        axs[0].plot([p[0] for p in path_points], [p[1] for p in path_points], 'g--')  # Plot path
-        axs[0].set_xlabel('x')
-        axs[0].set_ylabel('y')
+        axs[0].plot(current_state[1], current_state[0], 'bo')  # Plot current UAV position
+        axs[0].plot([p[1] for p in path_points], [p[0] for p in path_points], 'g--')  # Plot path
+        axs[0].set_xlabel('e')
+        axs[0].set_ylabel('n')
         axs[0].set_title('UAV Trajectory')
 
         axs[1].cla()
@@ -87,16 +86,15 @@ def main():
         axs[1].set_ylabel('Velocity')
 
         axs[2].cla()
-        axs[2].plot([state[3] for state in state_history], 'g')
+        axs[2].plot([state[3]*180/np.pi for state in state_history], 'g')
         axs[2].set_xlabel('Time Step')
         axs[2].set_ylabel('Yaw')
 
         axs[3].cla()
         if input_history:
             inputs = np.array(input_history)
-            axs[3].plot(inputs[:, 0], 'b', label='Ax')
-            axs[3].plot(inputs[:, 1], 'r', label='Ay')
-            axs[3].plot(inputs[:, 2], 'g', label='Yaw rate')
+            axs[3].plot(inputs[:, 0], 'b', label='a')
+            axs[3].plot(inputs[:, 1]*180/np.pi, 'g', label='Roll')
             axs[3].set_xlabel('Time Step')
             axs[3].set_ylabel('Input Value')
             axs[3].legend()
@@ -107,11 +105,6 @@ def main():
     # Turn off interactive mode and show the final plot
     plt.ioff()
     plt.show()
-
-    # Optionally, save the state, input, and output histories for further analysis
-    np.save("state_history.npy", state_history)
-    np.save("input_history.npy", input_history)
-    np.save("output_history.npy", np.array(output_history))
 
 if __name__ == "__main__":
     main()
