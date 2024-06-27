@@ -46,17 +46,31 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     # Define model for ocp
     ocp.model = model.fixed_wing_lateral_model()
 
+    # Set dimensions
     nx = ocp.model.x.size()[0]
     nu = ocp.model.u.size()[0]
+    ny = 0
+    ny_e = 0
 
-    # Set dimensions
+    ocp.dims.nx = nx
+    ocp.dims.ny = ny
+    ocp.dims.ny_e = ny_e
+    ocp.dims.nbx = nx
+    ocp.dims.nbu = nu
+    ocp.dims.nu = nu
     ocp.dims.N = N_horizon
+    ocp.dims.nbx_0 = nx
+    ocp.dims.nbx_e = nx
+    ocp.dims.nbxe_0 = nx
 
     # Set cost
-    Q_mat = np.diag([0.01, 1, 0.01, 0.01])  # Adjust as needed
-    R_mat = np.diag([0.01, 10])
+    Q_mat = np.diag([1.0, 1, 10.0, 10.0])  # Adjust as needed
+    R_mat = np.diag([0.01, 0.01])
 
     unscale = N_horizon / Tf
+
+    # Calculate the MPC solver's time step
+    mpc_dt = Tf / N_horizon
 
     # Initial reference based on the first point in path_points
     n_ref, e_ref = path_points[0]
@@ -67,17 +81,29 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
     # Set constraints
-    ocp.constraints.lbu = np.array([-19.62, -1.57079632679])
-    ocp.constraints.ubu = np.array([19.62, 1.57079632679])
+    ocp.constraints.lbu = np.array([-2.0, -np.pi/3])  # Reduced acceleration and roll angle limits
+    ocp.constraints.ubu = np.array([2.0, np.pi/3])
     ocp.constraints.idxbu = np.array([0, 1])
 
-    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 0.0, -1.0e19])
-    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 40.0, 1.0e19])
-    ocp.constraints.idxbx = np.array([0, 1, 2, 3]) 
+     # Set state constraints for all time steps
+    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, np.pi])
+    ocp.constraints.idxbx = np.array([0, 1, 2, 3])
+
+    # Apply state constraints to all nodes
+    ocp.constraints.idxbx_0 = np.array([0, 1, 2, 3])
+    ocp.constraints.lbx_0 = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
+    ocp.constraints.ubx_0 = np.array([1.0e19, 1.0e19, 30.0, np.pi])
+
+    for i in range(1, N_horizon+1):
+        ocp.constraints.idxbx_e = np.array([0, 1, 2, 3])
+        ocp.constraints.lbx_e = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
+        ocp.constraints.ubx_e = np.array([1.0e19, 1.0e19, 30.0, np.pi])
 
     ocp.constraints.x0 = x0
 
     # Set options
+    ocp.solver_options.tf = mpc_dt
     ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
@@ -97,5 +123,5 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp_solver = AcadosOcpSolver(ocp, json_file='acados_ocp.json')
     acados_integrator = AcadosSimSolver(ocp, json_file='acados_ocp.json')
 
-    return ocp_solver, acados_integrator
+    return ocp_solver, acados_integrator, mpc_dt
 

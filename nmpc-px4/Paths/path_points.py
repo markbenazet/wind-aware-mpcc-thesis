@@ -10,7 +10,7 @@ def generate_path_points(waypoints):
         n_end, e_end = waypoints[i + 1]
 
         # Number of points to add between each pair of waypoints (adjust as needed)
-        num_points_between = 10
+        num_points_between = 1
 
         # Generate points along the straight line segment
         segment_e = np.linspace(e_start, e_end, num_points_between + 2)[1:-1]  # Exclude start and end points

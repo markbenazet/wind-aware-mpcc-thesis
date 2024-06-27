@@ -1,46 +1,39 @@
 from acados_template import AcadosModel
 import casadi as cs
 
-class FixedWingLateralModel():
-    def __init__(self):
-        
-        self.model_name = 'fixed_wing_lateral_model'
-
-        #constants
+class FixedWingLateralModel:
+    def __init__(self, model_name='fixed_wing_lateral'):
+        self.model_name = model_name
         self.gravity = 9.81
-        # self.mass = 1.0
-        # self.max_thrust = 1.0
 
     def fixed_wing_lateral_model(self) -> AcadosModel:
-
-        # State variables
-        I_n = cs.MX.sym('e')
-        I_e = cs.MX.sym('n')
-        B_V = cs.MX.sym('V')
-        I_yaw = cs.MX.sym('yaw')
+        # State variables (assuming no wind)
+        I_n = cs.SX.sym('I_n')  # north position
+        I_e = cs.SX.sym('I_e')  # east position
+        I_v = cs.SX.sym('I_v')  # velocity
+        I_yaw = cs.SX.sym('I_yaw')  # yaw angle
+        states = cs.vertcat(I_n, I_e, I_v, I_yaw)
 
         # Input variables
-        B_a = cs.MX.sym('a')
-        I_roll= cs.MX.sym('roll')
-
-        # State and Input vectors
-        states = cs.vertcat(I_e, I_n, B_V, I_yaw)
+        B_a = cs.SX.sym('B_a')  # acceleration
+        I_roll = cs.SX.sym('I_roll')  # roll angle
         controls = cs.vertcat(B_a, I_roll)
 
         # Define the dynamics equations
-        dn_dt = B_V * cs.cos(I_yaw)
-        de_dt = B_V * cs.sin(I_yaw)
-        dV_dt = B_a
-        dyaw_dt = self.gravity * cs.tan(I_roll) / B_V
+        dn_dt = I_v * cs.cos(I_yaw)  # derivative of north position
+        de_dt = I_v * cs.sin(I_yaw)  # derivative of east position
+        dV_dt = B_a  # derivative of velocity
+        dyaw_dt = self.gravity * cs.tan(I_roll) / I_v  # derivative of yaw angle
 
         # Concatenate the state derivatives
         state_derivatives = cs.vertcat(dn_dt, de_dt, dV_dt, dyaw_dt)
 
-        # AcadosModel object
+        # Create AcadosModel object
         model = AcadosModel()
-        model.f_expl_expr = state_derivatives
-        model.x = states
-        model.u = controls
-        model.name = self.model_name
+        model.f_expl_expr = state_derivatives  # explicit ODE right-hand side
+        model.x = states  # state vector
+        model.u = controls  # control vector
+        model.name = self.model_name  # model name
 
         return model
+
