@@ -18,7 +18,7 @@ def main():
     desired_velocity = 25.0
 
     # Initial state for MPC solver 
-    x0 = np.array([-20.0, -20.0, 20.0, 0.0])  # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, 0.0, 0.0, 0.0])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=False)
 
@@ -37,10 +37,10 @@ def main():
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 100.0)
+        reference_point = path_manager.get_reference_point(current_position, 10.0)
 
         # Get the next reference point for yaw calculation
-        next_point = path_manager.get_reference_point(reference_point, 150.0)
+        next_point = path_manager.get_reference_point(reference_point, 10.0)
 
         # Calculate yaw reference
         delta = next_point - reference_point
@@ -89,6 +89,7 @@ def main():
         print(f"Next point: {next_point}")
         print(f"Yaw reference: {yaw_reference}")
         print(f"Full reference: {full_reference}")
+        print(f"optimal input: {u_opt}")
 
         # Update simulation time
         simulation_time += dt
@@ -116,9 +117,8 @@ def main():
     axs[2].set_title('UAV Yaw')
 
     # Plot Control Inputs
-    inputs = np.array(input_history)
-    axs[3].plot(range(len(inputs)), inputs[:, 0], 'b', label='Acceleration')
-    axs[3].plot(range(len(inputs)), inputs[:, 1], 'g', label='Roll')
+    axs[3].plot([input[0] for input in input_history], 'b', label='Acceleration')
+    axs[3].plot([input[1] for input in input_history], 'r', label='Yaw Rate')
     axs[3].set_xlabel('Time Step')
     axs[3].set_ylabel('Input Value')
     axs[3].legend()

@@ -46,22 +46,8 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     # Define model for ocp
     ocp.model = model.fixed_wing_lateral_model()
 
-    # Set dimensions
-    nx = ocp.model.x.size()[0]
-    nu = ocp.model.u.size()[0]
-    ny = 0
-    ny_e = 0
-
-    ocp.dims.nx = nx
-    ocp.dims.ny = ny
-    ocp.dims.ny_e = ny_e
-    ocp.dims.nbx = nx
-    ocp.dims.nbu = nu
-    ocp.dims.nu = nu
     ocp.dims.N = N_horizon
-    ocp.dims.nbx_0 = nx
-    ocp.dims.nbx_e = nx
-    ocp.dims.nbxe_0 = nx
+   
     unscale = N_horizon / Tf
 
     mpc_dt = Tf / N_horizon
@@ -75,37 +61,36 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.cost.yref = np.array([n_ref, e_ref, 25.0, 0.0, 0.0, 0.0])  
 
     # Weights
-    Q_mat = np.diag([1.0, 1.0, 10.0, 0.1])  
-    R_mat = np.diag([0.01, 0.01])
+    Q_mat = np.diag([0.0, 0.0, 10.0, 0.0])  
+    R_mat = np.diag([0.0, 0.0])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
-    # Set constraints
-    ocp.constraints.lbu = np.array([-2.0, -np.pi/3]) 
-    ocp.constraints.ubu = np.array([2.0, np.pi/3])
-    ocp.constraints.idxbu = np.array([0, 1])
+    # # Set constraints
+    # ocp.constraints.lbu = np.array([-4.0, -np.pi/2]) 
+    # ocp.constraints.ubu = np.array([4.0, np.pi/2])
+    # ocp.constraints.idxbu = np.array([0, 1])
 
-    # Set state constraints for all time steps
-    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
-    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, np.pi])
-    ocp.constraints.idxbx = np.array([0, 1, 2, 3])
+    # # Set state constraints for all time steps
+    # ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 20.0, -1.0e19])
+    # ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, 1.0e19])
+    # ocp.constraints.idxbx = np.array([0, 1, 2, 3])
 
-    # Apply state constraints to all nodes
-    ocp.constraints.idxbx_0 = np.array([0, 1, 2, 3])
-    ocp.constraints.lbx_0 = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
-    ocp.constraints.ubx_0 = np.array([1.0e19, 1.0e19, 30.0, np.pi])
-
-    for i in range(1, N_horizon+1):
-        ocp.constraints.idxbx_e = np.array([0, 1, 2, 3])
-        ocp.constraints.lbx_e = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
-        ocp.constraints.ubx_e = np.array([1.0e19, 1.0e19, 30.0, np.pi])
+    # # Apply state constraints to all nodes
+    # ocp.constraints.idxbx_0 = np.array([0, 1, 2, 3])
+    # ocp.constraints.lbx_0 = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
+    # ocp.constraints.ubx_0 = np.array([1.0e19, 1.0e19, 30.0, np.pi])
 
     ocp.constraints.x0 = x0
 
     # Set options
     ocp.solver_options.tf = mpc_dt
-    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
+    ocp.solver_options.nlp_solver_max_iter = 100  # Increase as needed
+    ocp.solver_options.nlp_solver_tol_stat = 1e-6  # Example, adjust as needed
+    ocp.solver_options.nlp_solver_tol_eq = 1e-6
+    ocp.solver_options.nlp_solver_tol_ineq = 1e-6
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP
