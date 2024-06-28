@@ -62,30 +62,29 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.dims.nbx_0 = nx
     ocp.dims.nbx_e = nx
     ocp.dims.nbxe_0 = nx
-
-    # Set cost
-    Q_mat = np.diag([1.0, 1, 10.0, 10.0])  # Adjust as needed
-    R_mat = np.diag([0.01, 0.01])
-
     unscale = N_horizon / Tf
 
-    # Calculate the MPC solver's time step
     mpc_dt = Tf / N_horizon
 
-    # Initial reference based on the first point in path_points
     n_ref, e_ref = path_points[0]
 
     ocp.cost.cost_type = 'NONLINEAR_LS'
     ocp.model.cost_y_expr = cs.vertcat(ocp.model.x, ocp.model.u)
-    ocp.cost.yref = np.array([n_ref, e_ref, 0.0, 0.0, 0.0, 0.0])
+    
+    # Set initial reference. We'll update this in the MPC loop
+    ocp.cost.yref = np.array([n_ref, e_ref, 25.0, 0.0, 0.0, 0.0])  
+
+    # Weights
+    Q_mat = np.diag([1.0, 1.0, 10.0, 0.1])  
+    R_mat = np.diag([0.01, 0.01])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
     # Set constraints
-    ocp.constraints.lbu = np.array([-2.0, -np.pi/3])  # Reduced acceleration and roll angle limits
+    ocp.constraints.lbu = np.array([-2.0, -np.pi/3]) 
     ocp.constraints.ubu = np.array([2.0, np.pi/3])
     ocp.constraints.idxbu = np.array([0, 1])
 
-     # Set state constraints for all time steps
+    # Set state constraints for all time steps
     ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
     ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, np.pi])
     ocp.constraints.idxbx = np.array([0, 1, 2, 3])

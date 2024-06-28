@@ -1,4 +1,5 @@
 from Paths import path_manager
+from Paths.path_manager import path_manager
 from acados_settings import acados_settings
 from model.FW_lateral_model import FixedWingLateralModel
 import numpy as np
@@ -14,14 +15,12 @@ def main():
     # Initialize MPC solver
     N_horizon = 20
     Tf = 1.0  
+    desired_velocity = 25.0
 
     # Initial state for MPC solver 
     x0 = np.array([-20.0, -20.0, 20.0, 0.0])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=False)
-
-    # Threshold distance to switch to the next point 
-    threshold_distance = 7.0  # threshold distance
 
     # Lists to store state and input values for debugging
     state_history = []
@@ -35,18 +34,40 @@ def main():
     max_simulation_time = 10.0
     dt = mpc_dt
 
-    while i < len(path_points) and simulation_time < max_simulation_time:
-        current_point = np.array(path_points[i])
+    while simulation_time < max_simulation_time:
+        
+        current_position = current_state[:2]
+        reference_point = path_manager.get_reference_point(current_position)
+
+        # Get the next reference point for yaw calculation
+        next_point = path_manager.get_reference_point(reference_point)
+
+        # Calculate yaw reference
+        delta = next_point - reference_point
+        yaw_reference = np.arctan2(delta[1], delta[0])
 
         # Update MPC reference
+        full_reference = np.zeros(6) 
+        full_reference[:2] = reference_point 
+        full_reference[2] = desired_velocity  
+        full_reference[3] = yaw_reference
+
+        # Update MPC reference for all prediction steps
+        for i in range(N_horizon):
+            ocp_solver.set(i, 'yref', full_reference)
+
+        # Set the initial state constraint
         ocp_solver.set(0, 'lbx', current_state)
         ocp_solver.set(0, 'ubx', current_state)
-        ocp_solver.set(0, 'yref', np.concatenate((current_point, np.zeros(4))))
 
         # Solve MPC problem
         status = ocp_solver.solve()
         if status != 0:
-            print(f"acados returned status {status} in closed loop iteration {i}.")
+            print(f"acados returned status {status} in closed loop iteration at time {simulation_time:.2f}.")
+            print(f"Current state: {current_state}")
+            print(f"Reference point: {reference_point}")
+            print(f"Full reference: {full_reference}")
+            break  # Exit the loop if solver fails
 
         # Get control inputs from MPC solver
         u_opt = ocp_solver.get(0, 'u')
@@ -54,7 +75,7 @@ def main():
         # Store current state, input, and output for final plotting
         state_history.append(current_state.copy())
         input_history.append(u_opt.copy())
-        output_history.append(current_point.copy())
+        output_history.append(current_position.copy())
 
         # Update current_state based on dynamics model
         acados_integrator.set("x", current_state)
@@ -62,10 +83,12 @@ def main():
         acados_integrator.solve()
         current_state = acados_integrator.get("x")
 
-        # Check if the current state is close enough to the current reference point
-        distance = np.linalg.norm(current_state[:2] - current_point[:2])
-        if distance < threshold_distance:
-            i += 1  # Switch to the next point
+        # Debug print
+        print(f"Current position: {current_position}")
+        print(f"Reference point: {reference_point}")
+        print(f"Next point: {next_point}")
+        print(f"Yaw reference: {yaw_reference}")
+        print(f"Full reference: {full_reference}")
 
         # Update simulation time
         simulation_time += dt
