@@ -37,10 +37,10 @@ def main():
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position)
+        reference_point = path_manager.get_reference_point(current_position, 100.0)
 
         # Get the next reference point for yaw calculation
-        next_point = path_manager.get_reference_point(reference_point)
+        next_point = path_manager.get_reference_point(reference_point, 150.0)
 
         # Calculate yaw reference
         delta = next_point - reference_point
