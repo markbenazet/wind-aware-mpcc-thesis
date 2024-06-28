@@ -24,12 +24,13 @@ def generate_path_points(waypoints, num_points=1000):
 
     return np.column_stack((n_path, e_path))
 
-def get_lookahead_point(path_points, current_position, lookahead_distance):
+def get_lookahead_point(path_points, current_position, lookahead_distance,):
     current_position = np.array(current_position)
     path_points = np.array(path_points)
     
     if path_points.ndim == 1:
         # If path_points is a single point, return it
+        print("Path points is a single point")
         return path_points
 
     # Find the closest point on the path

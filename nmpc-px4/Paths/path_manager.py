@@ -18,7 +18,7 @@ class PathManager:
         if self.path is None:
             raise ValueError("Path has not been generated. Call generate_path_from_waypoints() first.")
         
-        return path_points.get_lookahead_point(current_position, self.path, lookahead_distance)
+        return path_points.get_lookahead_point(self.path, current_position, lookahead_distance)
 
 # Create an instance of PathManager
 path_manager = PathManager()
