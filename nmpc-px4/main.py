@@ -18,7 +18,7 @@ def main():
     desired_velocity = 25.0
 
     # Initial state for MPC solver 
-    x0 = np.array([0.0, 0.0, 0.0, 0.0])  # initial state (x, y, V, yaw)
+    x0 = np.array([-20.0, -20.0, 20.0, 0.0])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=False)
 

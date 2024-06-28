@@ -1,7 +1,7 @@
 from scipy.interpolate import interp1d
 import numpy as np
 
-def generate_path_points(waypoints, num_points=3):
+def generate_path_points(waypoints, num_points=1000):
     waypoints = np.array(waypoints)
 
     if len(waypoints) < 2:

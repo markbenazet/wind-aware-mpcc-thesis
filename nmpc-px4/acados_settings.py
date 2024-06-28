@@ -65,20 +65,20 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     R_mat = np.diag([0.1, 0.1])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
-    # # Set constraints
-    # ocp.constraints.lbu = np.array([-4.0, -np.pi/2]) 
-    # ocp.constraints.ubu = np.array([4.0, np.pi/2])
-    # ocp.constraints.idxbu = np.array([0, 1])
+    # Set constraints
+    ocp.constraints.lbu = np.array([-4.0, -np.pi/3]) 
+    ocp.constraints.ubu = np.array([4.0, np.pi/3])
+    ocp.constraints.idxbu = np.array([0, 1])
 
-    # # Set state constraints for all time steps
-    # ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 20.0, -1.0e19])
-    # ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, 1.0e19])
-    # ocp.constraints.idxbx = np.array([0, 1, 2, 3])
+    # Set state constraints for all time steps
+    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 20.0, -1.0e19])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, 1.0e19])
+    ocp.constraints.idxbx = np.array([0, 1, 2, 3])
 
-    # # Apply state constraints to all nodes
-    # ocp.constraints.idxbx_0 = np.array([0, 1, 2, 3])
-    # ocp.constraints.lbx_0 = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
-    # ocp.constraints.ubx_0 = np.array([1.0e19, 1.0e19, 30.0, np.pi])
+    # Apply state constraints to all nodes
+    ocp.constraints.idxbx_0 = np.array([0, 1, 2, 3])
+    ocp.constraints.lbx_0 = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
+    ocp.constraints.ubx_0 = np.array([1.0e19, 1.0e19, 30.0, np.pi])
 
     ocp.constraints.x0 = x0
 
@@ -87,11 +87,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    ocp.solver_options.nlp_solver_max_iter = 100  # Increase as needed
-    ocp.solver_options.nlp_solver_tol_stat = 1e-6  # Example, adjust as needed
-    ocp.solver_options.nlp_solver_tol_eq = 1e-6
-    ocp.solver_options.nlp_solver_tol_ineq = 1e-6
-
+    
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP
         ocp.solver_options.sim_method_num_stages = 4

@@ -9,7 +9,7 @@ class PathManager:
         # Generate path using cubic interpolation
         self.path = path_points.generate_path_points(waypoints.path_points)
 
-        # Visualize waypoints and generated path (optional)
+        # Visualize waypoints and generated path
         visualization.plot_waypoints_and_path(waypoints.path_points, self.path)
 
         return self.path
