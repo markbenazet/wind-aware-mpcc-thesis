@@ -76,7 +76,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
 
     # Weights
     Q_mat = np.diag([1.0, 1.0, 10.0, 0.1])  
-    R_mat = np.diag([0.01, 0.01])
+    R_mat = np.diag([0.1, 0.1])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
     # Set constraints

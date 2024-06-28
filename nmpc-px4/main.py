@@ -31,7 +31,7 @@ def main():
 
     i = 0
     simulation_time = 0
-    max_simulation_time = 30.0
+    max_simulation_time = 60.0
     dt = mpc_dt
 
     while simulation_time < max_simulation_time:
