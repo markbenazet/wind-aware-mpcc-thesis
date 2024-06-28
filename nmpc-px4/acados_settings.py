@@ -84,10 +84,10 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
 
     # Set options
     ocp.solver_options.tf = mpc_dt
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    
+
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP
         ocp.solver_options.sim_method_num_stages = 4
