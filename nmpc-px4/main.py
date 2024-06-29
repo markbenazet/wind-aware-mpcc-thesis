@@ -13,14 +13,14 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 5
-    Tf = 1.0  
-    desired_velocity = 25.0
+    N_horizon = 60
+    Tf = 8.0  
+    desired_velocity = 20.0
 
     # Initial state for MPC solver 
     x0 = np.array([-20.0, -20.0, 20.0, 0.0])  # initial state (x, y, V, yaw)
 
-    ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=False)
+    ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
     # Lists to store state and input values for debugging
     state_history = []
@@ -31,16 +31,16 @@ def main():
 
     i = 0
     simulation_time = 0
-    max_simulation_time = 60.0
+    max_simulation_time = 150.0
     dt = mpc_dt
 
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 5.0)
+        reference_point = path_manager.get_reference_point(current_position, 10.0)
 
         # Get the next reference point for yaw calculation
-        next_point = path_manager.get_reference_point(reference_point, 5.0)
+        next_point = path_manager.get_reference_point(reference_point, 10.0)
 
         # Calculate yaw reference
         delta = next_point - reference_point
@@ -118,7 +118,7 @@ def main():
 
     # Plot Control Inputs
     axs[3].plot([input[0] for input in input_history], 'b', label='Acceleration')
-    axs[3].plot([input[1] for input in input_history], 'r', label='Roll')
+    axs[3].plot([input[1] for input in input_history], 'r', label='Yaw_rate')
     axs[3].set_xlabel('Time Step')
     axs[3].set_ylabel('Input Value')
     axs[3].legend()

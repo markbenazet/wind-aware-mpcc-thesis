@@ -16,14 +16,14 @@ class FixedWingLateralModel:
 
         # Input variables
         B_a = cs.SX.sym('B_a')  # acceleration
-        I_roll = cs.SX.sym('I_roll')  # roll angle
-        controls = cs.vertcat(B_a, I_roll)
+        I_yaw_rate = cs.SX.sym('I_yaw_rate')  # roll angle
+        controls = cs.vertcat(B_a, I_yaw_rate)
 
         # Define the dynamics equations
         dn_dt = I_v * cs.cos(I_yaw)  # derivative of north position
         de_dt = I_v * cs.sin(I_yaw)  # derivative of east position
         dV_dt = B_a  # derivative of velocity
-        dyaw_dt = self.gravity * cs.tan(I_roll) / I_v  # derivative of yaw angle
+        dyaw_dt = I_yaw_rate#self.gravity * cs.tan(I_roll) / I_v  # derivative of yaw angle
 
         # Concatenate the state derivatives
         state_derivatives = cs.vertcat(dn_dt, de_dt, dV_dt, dyaw_dt)
