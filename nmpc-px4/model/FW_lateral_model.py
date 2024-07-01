@@ -1,5 +1,6 @@
 from acados_template import AcadosModel
 import casadi as cs
+import numpy as np
 
 class FixedWingLateralModel:
     def __init__(self, model_name='fixed_wing_lateral'):
@@ -36,4 +37,8 @@ class FixedWingLateralModel:
         model.name = self.model_name  # model name
 
         return model
+    
+    @staticmethod
+    def normalize_angle(angle):
+        return (angle + np.pi) % (2 * np.pi) - np.pi
 

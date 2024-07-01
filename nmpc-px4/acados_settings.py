@@ -61,8 +61,8 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.cost.yref = np.array([n_ref, e_ref, 25.0, 0.0, 0.0, 0.0])  
 
     # Weights
-    Q_mat = np.diag([40.0, 40.0, 30.0, 10.0])  
-    R_mat = np.diag([100.0, 100.0])
+    Q_mat = np.diag([120.0, 120.0, 40.0, 10.0])  
+    R_mat = np.diag([10.0, 10.0])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
     # Set constraints
@@ -71,14 +71,9 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     ocp.constraints.idxbu = np.array([0, 1])
 
     # Set state constraints for all time steps
-    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, -np.pi])
-    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, np.pi])
+    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, -1.0e19])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, 1.0e19])
     ocp.constraints.idxbx = np.array([0, 1, 2, 3])
-
-    # Apply state constraints to all nodes
-    ocp.constraints.idxbx_0 = np.array([0, 1, 2, 3])
-    ocp.constraints.lbx_0 = np.array([-1.0e19, -1.0e19, 20.0, -np.pi])
-    ocp.constraints.ubx_0 = np.array([1.0e19, 1.0e19, 30.0, np.pi])
 
     ocp.constraints.x0 = x0
 

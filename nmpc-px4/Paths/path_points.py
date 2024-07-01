@@ -43,5 +43,9 @@ def get_lookahead_point(path_points, current_position, lookahead_distance,):
     while distance < lookahead_distance and lookahead_point_idx < len(path_points) - 1:
         lookahead_point_idx += 1
         distance += np.linalg.norm(path_points[lookahead_point_idx] - path_points[lookahead_point_idx - 1])
+    
+    lookahead_point = path_points[lookahead_point_idx]
 
-    return path_points[lookahead_point_idx]
+    path_points = np.delete(path_points, lookahead_point_idx, axis=0)
+
+    return lookahead_point
