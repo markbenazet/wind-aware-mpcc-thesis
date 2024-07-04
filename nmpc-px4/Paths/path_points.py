@@ -24,7 +24,7 @@ def generate_path_points(waypoints, num_points=1000):
 
     return np.column_stack((n_path, e_path))
 
-def get_lookahead_point(path_points, current_position, lookahead_distance,):
+def get_lookahead_point(path_points, current_position, lookahead_distance):
     current_position = np.array(current_position)
     path_points = np.array(path_points)
     
@@ -34,8 +34,11 @@ def get_lookahead_point(path_points, current_position, lookahead_distance,):
         return path_points
 
     # Find the closest point on the path
-    distance = np.linalg.norm(path_points - current_position, axis=1)
-    closest_point_idx = np.argmin(distance)
+    distances = np.linalg.norm(path_points - current_position, axis=1)
+    closest_point_indices = np.where(distances == np.min(distances))[0]
+
+    # Choose the closest index to the current reference if there are multiple points at the same distance
+    closest_point_idx = closest_point_indices[0]
 
     # Find the lookahead point on the path
     lookahead_point_idx = closest_point_idx

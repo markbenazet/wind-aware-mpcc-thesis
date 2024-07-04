@@ -18,7 +18,7 @@ def main():
     desired_velocity = 15.0
 
     # Initial state for MPC solver 
-    x0 = np.array([-20.0, -20.0, 20.0, 3*np.pi/2])  # initial state (x, y, V, yaw)
+    x0 = np.array([-120.0, -20.0, 20.0, 3*np.pi/2])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
@@ -31,7 +31,7 @@ def main():
 
     i = 0
     simulation_time = 0
-    max_simulation_time = 250.0
+    max_simulation_time = 80.0
     dt = mpc_dt
 
     while simulation_time < max_simulation_time:
