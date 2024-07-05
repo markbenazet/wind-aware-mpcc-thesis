@@ -14,11 +14,11 @@ def main():
 
     # Initialize MPC solver
     N_horizon = 40
-    Tf = 1.0  
-    desired_velocity = 15.0
+    Tf = 8.0  
+    desired_velocity = np.array([25.0, 0.0])
 
     # Initial state for MPC solver 
-    x0 = np.array([-120.0, -20.0, 20.0, 3*np.pi/2])  # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, 0.0, 25.0, 0.0, 3*np.pi/2])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
@@ -37,21 +37,21 @@ def main():
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 20.0)
+        reference_point = path_manager.get_reference_point(current_position, 5.0)
 
-        # Get the next reference point for yaw calculation
-        next_point = path_manager.get_reference_point(reference_point, 20.0)
+        # # Get the next reference point for yaw calculation
+        # next_point = path_manager.get_reference_point(current_position, 20.0)
 
-        # Calculate yaw reference
-        delta = next_point - reference_point
-        yaw_reference = np.arctan2(delta[1], delta[0])
-        yaw_reference = (yaw_reference + np.pi) % (2 * np.pi) - np.pi
+        # # Calculate yaw reference
+        # delta = next_point - reference_point
+        # yaw_reference = np.arctan2(delta[1], delta[0])
+        # yaw_reference = (yaw_reference + np.pi) % (2 * np.pi) - np.pi
 
         # Update MPC reference
-        full_reference = np.zeros(6) 
+        full_reference = np.zeros(8) 
         full_reference[:2] = reference_point 
-        full_reference[2] = desired_velocity  
-        full_reference[3] = yaw_reference
+        full_reference[2:4] = desired_velocity  
+        
 
         # Update MPC reference for all prediction steps
         for i in range(N_horizon):
@@ -75,7 +75,7 @@ def main():
 
         # Store current state, input, and output for final plotting
         state_to_save = current_state.copy()
-        state_to_save[3] = model.normalize_angle(state_to_save[3])
+        state_to_save[4] = model.normalize_angle(state_to_save[4])
         state_history.append(state_to_save)
         input_history.append(u_opt.copy())
         output_history.append(current_position.copy())
@@ -113,22 +113,24 @@ def main():
     fig, axs = plt.subplots(3, 1, figsize=(10, 15))
 
     # Plot Velocity
-    axs[0].plot([state[2] for state in state_history], 'r')
+    axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
+    axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
     axs[0].set_xlabel('Time Step')
     axs[0].set_ylabel('Velocity (m/s)')
     axs[0].set_title('UAV Velocity')
     axs[0].grid()
 
     # Plot Yaw
-    axs[1].plot([state[3] for state in state_history], 'g')
+    axs[1].plot([state[4] for state in state_history], 'g')
     axs[1].set_xlabel('Time Step')
     axs[1].set_ylabel('Yaw (radians)')
     axs[1].set_title('UAV Yaw')
     axs[1].grid()
 
     # Plot Control Inputs
-    axs[2].plot([input[0] for input in input_history], 'b', label='Acceleration')
-    axs[2].plot([input[1] for input in input_history], 'r', label='Yaw_rate')
+    axs[2].plot([input[0] for input in input_history], 'b', label='Acceleration_x')
+    axs[2].plot([input[1] for input in input_history], 'g', label='Acceleration_y')
+    axs[2].plot([input[2] for input in input_history], 'r', label='Yaw_rate')
     axs[2].set_xlabel('Time Step')
     axs[2].set_ylabel('Input Value')
     axs[2].legend()
