@@ -18,7 +18,7 @@ def main():
     desired_velocity = np.array([25.0, 0.0])
 
     # Initial state for MPC solver 
-    x0 = np.array([0.0, 0.0, 25.0, 0.0, 3*np.pi/2])  # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, 100.0, 25.0, 0.0, np.pi])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
@@ -26,6 +26,7 @@ def main():
     state_history = []
     input_history = []
     output_history = []
+    reference_history = []
 
     current_state = x0
 
@@ -37,7 +38,7 @@ def main():
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 5.0)
+        reference_point = path_manager.get_reference_point(current_position, 30.0)
 
         # # Get the next reference point for yaw calculation
         # next_point = path_manager.get_reference_point(current_position, 20.0)
@@ -51,11 +52,13 @@ def main():
         full_reference = np.zeros(8) 
         full_reference[:2] = reference_point 
         full_reference[2:4] = desired_velocity  
-        
+
+        # p = np.array([-2.0, 2.0])
 
         # Update MPC reference for all prediction steps
         for i in range(N_horizon):
             ocp_solver.set(i, 'yref', full_reference)
+            # ocp_solver.set(i, 'p', p)
 
         # Set the initial state constraint
         ocp_solver.set(0, 'lbx', current_state)
@@ -79,6 +82,7 @@ def main():
         state_history.append(state_to_save)
         input_history.append(u_opt.copy())
         output_history.append(current_position.copy())
+        reference_history.append(reference_point.copy())
 
         # Update current_state based on dynamics model
         acados_integrator.set("x", current_state)
@@ -100,12 +104,14 @@ def main():
 
     # Plot UAV Trajectory
     plt.figure(figsize=(10, 8))
-    plt.plot([state[1] for state in state_history], [state[0] for state in state_history], 'b-', label='UAV Trajectory')
-    plt.plot([p[1] for p in path_points], [p[0] for p in path_points], 'g--', label='Path Points')
+    plt.plot([state[1] for state in state_history], [state[0] for state in state_history], 'b-')
+    plt.plot([p[1] for p in path_points], [p[0] for p in path_points], 'g--')
+    plt.plot([p[1] for p in reference_history], [p[0] for p in reference_history], 'r.',)
+    # Add the vector p as an arrow
+    plt.arrow(0, 0, 5*p[1], 5*p[0], color='magenta', width=0.5, length_includes_head=True, head_width=2.0)
     plt.xlabel('East')
     plt.ylabel('North')
     plt.title('UAV Trajectory')
-    plt.legend()
     plt.grid()
     plt.show()
 
