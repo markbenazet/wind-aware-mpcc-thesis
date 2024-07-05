@@ -1,7 +1,7 @@
 from scipy.interpolate import interp1d
 import numpy as np
 
-def generate_path_points(waypoints, num_points=1000):
+def generate_path_points(waypoints, num_points=50):
     waypoints = np.array(waypoints)
 
     if len(waypoints) < 2:
@@ -48,7 +48,5 @@ def get_lookahead_point(path_points, current_position, lookahead_distance):
         distance += np.linalg.norm(path_points[lookahead_point_idx] - path_points[lookahead_point_idx - 1])
     
     lookahead_point = path_points[lookahead_point_idx]
-
-    path_points = np.delete(path_points, lookahead_point_idx, axis=0)
 
     return lookahead_point

@@ -13,8 +13,8 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 40
-    Tf = 8.0  
+    N_horizon = 10
+    Tf = 1.0  
     desired_velocity = np.array([25.0, 0.0])
 
     # Initial state for MPC solver 
@@ -38,7 +38,7 @@ def main():
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 30.0)
+        reference_point = path_manager.get_reference_point(current_position, 10.0)
 
         # # Get the next reference point for yaw calculation
         # next_point = path_manager.get_reference_point(current_position, 20.0)
@@ -53,12 +53,12 @@ def main():
         full_reference[:2] = reference_point 
         full_reference[2:4] = desired_velocity  
 
-        # p = np.array([-2.0, 2.0])
+        p = np.array([0.0, 0.0])
 
         # Update MPC reference for all prediction steps
         for i in range(N_horizon):
             ocp_solver.set(i, 'yref', full_reference)
-            # ocp_solver.set(i, 'p', p)
+            ocp_solver.set(i, 'p', p)
 
         # Set the initial state constraint
         ocp_solver.set(0, 'lbx', current_state)
