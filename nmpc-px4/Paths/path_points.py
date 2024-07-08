@@ -1,27 +1,22 @@
 from scipy.interpolate import interp1d, CubicSpline, make_interp_spline
 import numpy as np
 
-def generate_path_points(waypoints, num_points=1000):
+def generate_path_points(waypoints, num_points=100):
     waypoints = np.array(waypoints)
 
     if len(waypoints) < 2:
         raise ValueError("At least two waypoints are required to generate a path.")
-
-    # Ensure the path is closed by appending the first waypoint at the end
-    waypoints = np.vstack([waypoints, waypoints[0]])
-
-    # Parameter for the interpolation
+    # Interpolation threshold
     t = np.linspace(0, 1, len(waypoints))
-
-    # B-spline with periodic boundary conditions
-    n_interp = make_interp_spline(t, waypoints[:, 0], k=3, bc_type='periodic')
-    e_interp = make_interp_spline(t, waypoints[:, 1], k=3, bc_type='periodic')
-
+    # Choose interpolation method based on number of waypoints
+    kind = 'linear' if len(waypoints) < 4 else 'cubic'
+    # Create interpolation functions for north and east coordinates
+    n_interp = interp1d(t, waypoints[:, 0], kind=kind)
+    e_interp = interp1d(t, waypoints[:, 1], kind=kind)
     # Generate more points along the path
     t_fine = np.linspace(0, 1, num_points)
     n_path = n_interp(t_fine)
     e_path = e_interp(t_fine)
-
     return np.column_stack((n_path, e_path))
 
 def get_lookahead_point(path_points, current_position, lookahead_distance):

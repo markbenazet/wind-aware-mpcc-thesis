@@ -14,12 +14,13 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 10
-    Tf = 1.0  
+    N_horizon = 20
+    Tf = 2.0  
     desired_velocity = np.array([20.0, 0.0])
+    lookahead_distance = 10.0
 
     # Initial state for MPC solver 
-    x0 = np.array([0.0, 100.0, 25.0, 0.0, np.pi])   # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, -100.0, 20.0, 0.0, -1/2*np.pi])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
@@ -38,7 +39,8 @@ def main():
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 20.0)
+        reference_point = path_manager.get_reference_point(current_position, lookahead_distance)
+        lookahead_distance = np.linalg.norm(reference_point-current_position)*0.5
 
         # Get tangent of the path at the reference position
         tangent_vector = path_manager.get_path_tangent(reference_point)
@@ -60,6 +62,7 @@ def main():
         # Update MPC reference for all prediction steps
         for i in range(N_horizon):
             ocp_solver.set(i, 'p', params)
+            ocp_solver.set(i, 'yref', np.zeros(7))  # [et, e_chi, e_Vx, e_Vy, B_a_x, B_a_y, I_yaw_rate]
 
         # Set the initial state constraint
         ocp_solver.set(0, 'lbx', current_state)

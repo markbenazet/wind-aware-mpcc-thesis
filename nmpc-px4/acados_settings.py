@@ -55,7 +55,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     # Initialize parameters
     ocp.parameter_values = np.zeros((8, 1))
 
-    ocp.cost.cost_type = 'EXTERNAL'
+    ocp.cost.cost_type = 'NONLINEAR_LS'
 
     # Cost function
     I_n = ocp.model.x[0]
@@ -65,6 +65,8 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     I_yaw = ocp.model.x[4]
 
     # Define parameters
+    w_n = ocp.model.p[0]
+    w_e = ocp.model.p[1]
     n_ref = ocp.model.p[2]
     e_ref = ocp.model.p[3]
     Td_n = ocp.model.p[4]
@@ -78,35 +80,39 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
 
     e_Vx = vel_ref[0] - B_v_x
     e_Vy = vel_ref[1] - B_v_y
+
+    # Define cost function
+    ocp.model.cost_y_expr = cs.vertcat(et, e_chi, e_Vx, e_Vy, ocp.model.u)
+
+    # # Print y_expr on every iteration
+    # ocp.solver_options.print_level = 2
     
     # Set initial reference. We'll update this in the MPC loop
     ocp.cost.yref = np.zeros(7) 
 
     # Weights
-    Q_mat = np.diag([0.01, 0.01, 0.1, 0.01])  
+    Q_mat = np.diag([10.0, 1.0, 1.0, 1.0])  
     R_mat = np.diag([1e-2, 1e-2, 1e-1])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
-    ocp.model.cost_expr_ext_cost = cs.vertcat(et, e_chi, e_Vx, e_Vy, ocp.model.u).T @ scipy.linalg.block_diag(Q_mat, R_mat) @ cs.vertcat(et, e_chi, e_Vx, e_Vy, ocp.model.u)
-
     # Set constraints
-    ocp.constraints.lbu = np.array([-2.5, -15.0, -0.75]) 
-    ocp.constraints.ubu = np.array([2.5, 15.0, 0.75])
+    ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3]) 
+    ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3])
     ocp.constraints.idxbu = np.array([0, 1, 2])
 
     # Set state constraints for all time steps
     ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, 0.0, -1.0e19])
-    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 30.0, 0.0, 1.0e19])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 25.0, 0.0, 1.0e19])
     ocp.constraints.idxbx = np.array([0, 1, 2, 3, 4])
 
     ocp.constraints.x0 = x0
 
     # Set options
     ocp.solver_options.tf = mpc_dt
-    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'  # FULL_CONDENSING_QPOASES
-    ocp.solver_options.hessian_approx = 'EXACT'  # 'GAUSS_NEWTON', 'EXACT'
+    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    ocp.solver_options.nlp_solver_max_iter = 100
+    ocp.solver_options.nlp_solver_max_iter = 200
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP
