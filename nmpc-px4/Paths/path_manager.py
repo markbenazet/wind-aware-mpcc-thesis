@@ -20,6 +20,12 @@ class PathManager:
         
         return path_points.get_lookahead_point(self.path, current_position, lookahead_distance)
     
+    def get_path_tangent(self,reference_point):
+        if self.path is None:
+            raise ValueError("Path has not been generated. Call generate_path_from_waypoints() first.")
+        
+        return path_points.get_path_tangent(self.path, reference_point)
+    
 
 # Create an instance of PathManager
 path_manager = PathManager()

@@ -2,6 +2,7 @@ from Paths import path_manager
 from Paths.path_manager import path_manager
 from acados_settings import acados_settings
 from model.FW_lateral_model import FixedWingLateralModel
+import utils as u
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -15,50 +16,50 @@ def main():
     # Initialize MPC solver
     N_horizon = 10
     Tf = 1.0  
-    desired_velocity = np.array([25.0, 0.0])
+    desired_velocity = np.array([20.0, 0.0])
 
     # Initial state for MPC solver 
-    x0 = np.array([0.0, 100.0, 25.0, 0.0, np.pi])  # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, 100.0, 25.0, 0.0, np.pi])   # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
     # Lists to store state and input values for debugging
     state_history = []
     input_history = []
-    output_history = []
     reference_history = []
 
     current_state = x0
 
     i = 0
     simulation_time = 0
-    max_simulation_time = 80.0
+    max_simulation_time = 130.0
     dt = mpc_dt
 
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, 10.0)
+        reference_point = path_manager.get_reference_point(current_position, 20.0)
 
-        # # Get the next reference point for yaw calculation
-        # next_point = path_manager.get_reference_point(current_position, 20.0)
+        # Get tangent of the path at the reference position
+        tangent_vector = path_manager.get_path_tangent(reference_point)
 
-        # # Calculate yaw reference
-        # delta = next_point - reference_point
-        # yaw_reference = np.arctan2(delta[1], delta[0])
-        # yaw_reference = (yaw_reference + np.pi) % (2 * np.pi) - np.pi
+        n_ref, e_ref = reference_point[0], reference_point[1]
 
-        # Update MPC reference
-        full_reference = np.zeros(8) 
-        full_reference[:2] = reference_point 
-        full_reference[2:4] = desired_velocity  
+         # Normalize the tangent vector
+        tangent_norm = np.linalg.norm(tangent_vector)
+        Td_n, Td_e = tangent_vector / tangent_norm if tangent_norm != 0 else (1.0, 0.0)
 
-        p = np.array([0.0, 0.0])
+        # Create parameter vector
+        params = np.zeros(8)
+        params[:2] = [0.0, 0.0]  # Set wind parameters
+        params[2:4] = reference_point
+        params[4:6] = [Td_n, Td_e]
+        params[6:8] = desired_velocity
+        # print(f"Iteration {i}: params = {params}")
 
         # Update MPC reference for all prediction steps
         for i in range(N_horizon):
-            ocp_solver.set(i, 'yref', full_reference)
-            ocp_solver.set(i, 'p', p)
+            ocp_solver.set(i, 'p', params)
 
         # Set the initial state constraint
         ocp_solver.set(0, 'lbx', current_state)
@@ -69,8 +70,6 @@ def main():
         if status != 0:
             print(f"acados returned status {status} in closed loop iteration at time {simulation_time:.2f}.")
             print(f"Current state: {current_state}")
-            print(f"Reference point: {reference_point}")
-            print(f"Full reference: {full_reference}")
             break  # Exit the loop if solver fails
 
         # Get control inputs from MPC solver
@@ -81,7 +80,6 @@ def main():
         state_to_save[4] = model.normalize_angle(state_to_save[4])
         state_history.append(state_to_save)
         input_history.append(u_opt.copy())
-        output_history.append(current_position.copy())
         reference_history.append(reference_point.copy())
 
         # Update current_state based on dynamics model
@@ -97,54 +95,13 @@ def main():
         # print(f"Yaw reference: {yaw_reference}")
         # print(f"Full reference: {full_reference}")
         # print(f"optimal input: {u_opt}")
-        print(f"Simulation time: {simulation_time:.2f} / {max_simulation_time:.2f}")
+        # print(f"Simulation time: {simulation_time:.2f} / {max_simulation_time:.2f}")
+        # print(f"Cost function value: {ocp_solver.get_cost()}")
 
         # Update simulation time
         simulation_time += dt
 
-    # Plot UAV Trajectory
-    plt.figure(figsize=(10, 8))
-    plt.plot([state[1] for state in state_history], [state[0] for state in state_history], 'b-')
-    plt.plot([p[1] for p in path_points], [p[0] for p in path_points], 'g--')
-    plt.plot([p[1] for p in reference_history], [p[0] for p in reference_history], 'r.',)
-    # Add the vector p as an arrow
-    plt.arrow(0, 0, 5*p[1], 5*p[0], color='magenta', width=0.5, length_includes_head=True, head_width=2.0)
-    plt.xlabel('East')
-    plt.ylabel('North')
-    plt.title('UAV Trajectory')
-    plt.grid()
-    plt.show()
-
-    # Plot State Variables and Control Inputs
-    fig, axs = plt.subplots(3, 1, figsize=(10, 15))
-
-    # Plot Velocity
-    axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
-    axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
-    axs[0].set_xlabel('Time Step')
-    axs[0].set_ylabel('Velocity (m/s)')
-    axs[0].set_title('UAV Velocity')
-    axs[0].grid()
-
-    # Plot Yaw
-    axs[1].plot([state[4] for state in state_history], 'g')
-    axs[1].set_xlabel('Time Step')
-    axs[1].set_ylabel('Yaw (radians)')
-    axs[1].set_title('UAV Yaw')
-    axs[1].grid()
-
-    # Plot Control Inputs
-    axs[2].plot([input[0] for input in input_history], 'b', label='Acceleration_x')
-    axs[2].plot([input[1] for input in input_history], 'g', label='Acceleration_y')
-    axs[2].plot([input[2] for input in input_history], 'r', label='Yaw_rate')
-    axs[2].set_xlabel('Time Step')
-    axs[2].set_ylabel('Input Value')
-    axs[2].legend()
-    axs[2].set_title('Control Inputs')
-    axs[2].grid()
-
-    plt.tight_layout()
-    plt.show()
+    u.plot_uav_trajectory_and_state(state_history, path_points, reference_history, input_history, params[:2])
 
 if __name__ == "__main__":
     main()

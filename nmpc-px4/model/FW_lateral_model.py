@@ -22,17 +22,22 @@ class FixedWingLateralModel:
         I_yaw_rate = cs.MX.sym('I_yaw_rate')  # yaw rate
         controls = cs.vertcat(B_a_x, B_a_y, I_yaw_rate)
 
+
         # Parameteres
-        p = cs.MX.sym('p', 2)
+        p = cs.MX.sym('p', 8)
         w_n = p[0]
         w_e = p[1]
+
+        V_air_n = B_v_x * cs.cos(I_yaw) + w_n
+        V_air_e = B_v_x * cs.sin(I_yaw) + w_e
+        a_v = cs.sqrt(V_air_n**2 + V_air_e**2)
 
         # Define the dynamics equations
         dn_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_n # derivative of north position
         de_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_e # derivative of east position
-        dv_x_dt = B_a_x - B_v_y*I_yaw_rate # derivative of velocity in x
-        dv_y_dt = B_a_y + B_v_x*I_yaw_rate # derivative of velocity in y
-        dyaw_dt = I_yaw_rate#self.gravity * cs.tan(I_roll) / I_v  # derivative of yaw angle
+        dv_x_dt = B_a_x - B_v_y*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in x
+        dv_y_dt = B_a_y + B_v_x*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in y
+        dyaw_dt = I_yaw_rate #self.gravity * cs.tan(I_roll) / a_v  # derivative of yaw angle
 
         # Concatenate the state derivatives
         state_derivatives = cs.vertcat(dn_dt, de_dt, dv_x_dt, dv_y_dt, dyaw_dt)
