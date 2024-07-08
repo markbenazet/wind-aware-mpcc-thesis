@@ -53,6 +53,10 @@ class FixedWingLateralModel:
         return model
     
     @staticmethod
-    def normalize_angle(angle):
+    def np_wrap_angle(angle):
         return (angle + np.pi) % (2 * np.pi) - np.pi
+    
+    @staticmethod
+    def cs_wrap_angle(angle):
+        return cs.fmod(angle + cs.pi, 2*cs.pi) - cs.pi
 

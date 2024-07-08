@@ -36,7 +36,7 @@ import numpy as np
 from model.FW_lateral_model import FixedWingLateralModel 
 import scipy.linalg
 
-def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
+def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     # Create an instance of the FixedWingLateralModel
     model = FixedWingLateralModel()
 
@@ -63,6 +63,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
     B_v_x = ocp.model.x[2]
     B_v_y = ocp.model.x[3]
     I_yaw = ocp.model.x[4]
+    wrapped_yaw = model.cs_wrap_angle(I_yaw)
 
     # Define parameters
     w_n = ocp.model.p[0]
@@ -109,7 +110,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=False):
 
     # Set options
     ocp.solver_options.tf = mpc_dt
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.nlp_solver_max_iter = 200

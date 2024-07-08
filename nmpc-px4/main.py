@@ -14,10 +14,10 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 20
-    Tf = 2.0  
+    N_horizon = 80
+    Tf = 8.0  
     desired_velocity = np.array([20.0, 0.0])
-    lookahead_distance = 10.0
+    lookahead_distance = 20.0
 
     # Initial state for MPC solver 
     x0 = np.array([0.0, -100.0, 20.0, 0.0, -1/2*np.pi])  # initial state (x, y, V, yaw)
@@ -65,8 +65,10 @@ def main():
             ocp_solver.set(i, 'yref', np.zeros(7))  # [et, e_chi, e_Vx, e_Vy, B_a_x, B_a_y, I_yaw_rate]
 
         # Set the initial state constraint
-        ocp_solver.set(0, 'lbx', current_state)
-        ocp_solver.set(0, 'ubx', current_state)
+        wrapped_current_state = current_state.copy()
+        wrapped_current_state[4] = model.np_wrap_angle(wrapped_current_state[4])
+        ocp_solver.set(0, 'lbx', wrapped_current_state)
+        ocp_solver.set(0, 'ubx', wrapped_current_state)
 
         # Solve MPC problem
         status = ocp_solver.solve()
@@ -80,7 +82,6 @@ def main():
 
         # Store current state, input, and output for final plotting
         state_to_save = current_state.copy()
-        state_to_save[4] = model.normalize_angle(state_to_save[4])
         state_history.append(state_to_save)
         input_history.append(u_opt.copy())
         reference_history.append(reference_point.copy())
@@ -90,6 +91,8 @@ def main():
         acados_integrator.set("u", u_opt)
         acados_integrator.solve()
         current_state = acados_integrator.get("x")
+
+        current_state[4] = model.np_wrap_angle(current_state[4])
 
         # Debug print
         # print(f"Current state: {current_state}")
