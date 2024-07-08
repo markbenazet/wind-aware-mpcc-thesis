@@ -75,7 +75,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     vel_ref = ocp.model.p[6:8]
 
     et = (n_ref - I_n)*Td_e + (e_ref - I_e)*Td_n
-    chi = I_yaw + cs.atan2(B_v_y, B_v_x)  # course angle
+    chi = wrapped_yaw + cs.atan2(B_v_y, B_v_x)  # course angle
     chi_ref = cs.atan2(Td_e, Td_n)
     e_chi = chi_ref - chi
 
@@ -92,7 +92,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     ocp.cost.yref = np.zeros(7) 
 
     # Weights
-    Q_mat = np.diag([10.0, 1.0, 1.0, 1.0])  
+    Q_mat = np.diag([2.0, 1.0, 0.1, 0.1])  
     R_mat = np.diag([1e-2, 1e-2, 1e-1])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
@@ -102,15 +102,15 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     ocp.constraints.idxbu = np.array([0, 1, 2])
 
     # Set state constraints for all time steps
-    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, 0.0, -1.0e19])
-    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 25.0, 0.0, 1.0e19])
+    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, 0.0, -np.pi])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 25.0, 0.0, np.pi])
     ocp.constraints.idxbx = np.array([0, 1, 2, 3, 4])
 
     ocp.constraints.x0 = x0
 
     # Set options
     ocp.solver_options.tf = mpc_dt
-    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.nlp_solver_max_iter = 200

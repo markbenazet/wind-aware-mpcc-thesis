@@ -14,8 +14,8 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 80
-    Tf = 8.0  
+    N_horizon = 40
+    Tf = 6.0  
     desired_velocity = np.array([20.0, 0.0])
     lookahead_distance = 20.0
 
@@ -40,7 +40,7 @@ def main():
         
         current_position = current_state[:2]
         reference_point = path_manager.get_reference_point(current_position, lookahead_distance)
-        lookahead_distance = np.linalg.norm(reference_point-current_position)*0.5
+
 
         # Get tangent of the path at the reference position
         tangent_vector = path_manager.get_path_tangent(reference_point)
