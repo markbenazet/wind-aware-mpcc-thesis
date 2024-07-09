@@ -76,6 +76,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
 
     et = (n_ref - I_n)*Td_e + (e_ref - I_e)*Td_n
     chi = wrapped_yaw + cs.atan2(B_v_y, B_v_x)  # course angle
+    
     chi_ref = cs.atan2(Td_e, Td_n)
     e_chi = chi_ref - chi
 
@@ -92,8 +93,8 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     ocp.cost.yref = np.zeros(7) 
 
     # Weights
-    Q_mat = np.diag([2.0, 1.0, 0.1, 0.1])  
-    R_mat = np.diag([1e-2, 1e-2, 1e-1])
+    Q_mat = np.diag([0.1, 1.0, 0.1, 0.1])  
+    R_mat = np.diag([1e-2, 1e-2, 1.0])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
     # Set constraints
@@ -113,7 +114,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    ocp.solver_options.nlp_solver_max_iter = 200
+    ocp.solver_options.nlp_solver_max_iter = 500
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # SQP_RTI, SQP

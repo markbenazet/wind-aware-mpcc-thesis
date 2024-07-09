@@ -7,6 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def main():
+
+    # Initialize the plot
+    fig, ax1, axs, line_uav_traj, line_path_points, line_ref_points, arrow_vector, line_vx, line_vy, line_yaw, line_accel_x, line_accel_y, line_yaw_rate = u.initialize_plot()
+
     # Generate path points from waypoints
     path_points = path_manager.generate_path_from_waypoints()
 
@@ -15,12 +19,11 @@ def main():
 
     # Initialize MPC solver
     N_horizon = 40
-    Tf = 6.0  
+    Tf = 4.0  
     desired_velocity = np.array([20.0, 0.0])
-    lookahead_distance = 20.0
 
     # Initial state for MPC solver 
-    x0 = np.array([0.0, -100.0, 20.0, 0.0, -1/2*np.pi])  # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, -100.0, 20.0, 0.0, 0])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, path_points, x0, use_RTI=True)
 
@@ -28,41 +31,46 @@ def main():
     state_history = []
     input_history = []
     reference_history = []
+    previous_reference = None
 
     current_state = x0
 
     i = 0
     simulation_time = 0
-    max_simulation_time = 130.0
+    max_simulation_time = 40.0
     dt = mpc_dt
 
     while simulation_time < max_simulation_time:
         
         current_position = current_state[:2]
-        reference_point = path_manager.get_reference_point(current_position, lookahead_distance)
 
-
-        # Get tangent of the path at the reference position
-        tangent_vector = path_manager.get_path_tangent(reference_point)
-
-        n_ref, e_ref = reference_point[0], reference_point[1]
-
-         # Normalize the tangent vector
-        tangent_norm = np.linalg.norm(tangent_vector)
-        Td_n, Td_e = tangent_vector / tangent_norm if tangent_norm != 0 else (1.0, 0.0)
+        lookahead_distance = current_state[2]*Tf/N_horizon
 
         # Create parameter vector
         params = np.zeros(8)
         params[:2] = [0.0, 0.0]  # Set wind parameters
-        params[2:4] = reference_point
-        params[4:6] = [Td_n, Td_e]
         params[6:8] = desired_velocity
+
         # print(f"Iteration {i}: params = {params}")
 
         # Update MPC reference for all prediction steps
         for i in range(N_horizon):
+
+            reference_point = path_manager.get_reference_point(current_position, lookahead_distance*i, previous_reference)
+            previous_reference = reference_point
+
+            # Get tangent of the path at the reference position
+            tangent_vector = path_manager.get_path_tangent(reference_point)
+
+            # Normalize the tangent vector
+            tangent_norm = np.linalg.norm(tangent_vector)
+            Td_n, Td_e = tangent_vector / tangent_norm if tangent_norm != 0 else (1.0, 0.0)
+
+            params[2:4] = reference_point
+            params[4:6] = [Td_n, Td_e]
             ocp_solver.set(i, 'p', params)
             ocp_solver.set(i, 'yref', np.zeros(7))  # [et, e_chi, e_Vx, e_Vy, B_a_x, B_a_y, I_yaw_rate]
+            reference_history.append(reference_point.copy())
 
         # Set the initial state constraint
         wrapped_current_state = current_state.copy()
@@ -84,7 +92,6 @@ def main():
         state_to_save = current_state.copy()
         state_history.append(state_to_save)
         input_history.append(u_opt.copy())
-        reference_history.append(reference_point.copy())
 
         # Update current_state based on dynamics model
         acados_integrator.set("x", current_state)
@@ -102,12 +109,15 @@ def main():
         # print(f"Full reference: {full_reference}")
         # print(f"optimal input: {u_opt}")
         # print(f"Simulation time: {simulation_time:.2f} / {max_simulation_time:.2f}")
+
+        u.update_plot(ax1, axs, line_uav_traj, line_path_points, line_ref_points, arrow_vector,
+                      line_vx, line_vy, line_yaw, line_accel_x, line_accel_y, line_yaw_rate,
+                      state_history, path_points, reference_history, input_history, params[:2])
         # print(f"Cost function value: {ocp_solver.get_cost()}")
 
         # Update simulation time
         simulation_time += dt
 
-    u.plot_uav_trajectory_and_state(state_history, path_points, reference_history, input_history, params[:2])
 
 if __name__ == "__main__":
     main()

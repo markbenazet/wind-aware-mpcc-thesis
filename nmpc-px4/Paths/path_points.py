@@ -1,7 +1,7 @@
 from scipy.interpolate import interp1d, CubicSpline, make_interp_spline
 import numpy as np
 
-def generate_path_points(waypoints, num_points=100):
+def generate_path_points(waypoints, num_points=1000):
     waypoints = np.array(waypoints)
 
     if len(waypoints) < 2:
