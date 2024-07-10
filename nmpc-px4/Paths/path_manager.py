@@ -39,6 +39,12 @@ class PathManager:
         
         return path_points.get_path_tangent(self.path, reference_point)
     
+    def get_closest_point(self, current_position):
+        if self.path is None:
+            raise ValueError("Path has not been generated. Call generate_path_from_waypoints() first.")
+        
+        return path_points.get_closest_point(self.path, current_position)
+    
 
 # Create an instance of PathManager
 path_manager = PathManager()

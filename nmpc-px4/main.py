@@ -28,6 +28,7 @@ def main():
     state_history = []
     input_history = []
     previous_reference = None
+    error = 0.0
 
     current_state = x0
 
@@ -98,6 +99,10 @@ def main():
 
         current_state[4] = model.np_wrap_angle(current_state[4])
 
+        # Compute the error between current position and closest point on the path
+        closest_point = path_manager.get_closest_point(current_position)
+        error += np.linalg.norm(current_position - closest_point)
+
         # Debug print
         # print(f"Current state: {current_state}")
         # print(f"Reference point: {reference_point}")
@@ -111,6 +116,7 @@ def main():
         # Update simulation time
         simulation_time += dt
     
+    print("Total error: ", error/simulation_time)
     u.plot_uav_trajectory_and_state(state_history, path_points, reference_history, input_history, params[:2])
 
 if __name__ == "__main__":

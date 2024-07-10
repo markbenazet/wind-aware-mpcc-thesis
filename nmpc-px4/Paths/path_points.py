@@ -55,3 +55,19 @@ def get_path_tangent(path_points, reference_point):
 
     return tangent
 
+def get_closest_point(path_points, current_position):
+    path_points = np.array(path_points)
+    
+    if path_points.ndim == 1:
+        # If path_points is a single point, return it
+        return path_points
+
+    # Find the closest point on the path
+    distances = np.linalg.norm(path_points - current_position, axis=1)
+    closest_point_indices = np.where(distances == np.min(distances))[0]
+
+    # Choose the closest index to the current reference if there are multiple points at the same distance
+    closest_point_idx = closest_point_indices[0]
+
+    return path_points[closest_point_idx]
+
