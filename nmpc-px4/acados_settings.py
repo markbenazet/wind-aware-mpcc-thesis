@@ -93,7 +93,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     ocp.cost.yref = np.zeros(7) 
 
     # Weights
-    Q_mat = np.diag([0.1, 1.0, 0.1, 0.1])  
+    Q_mat = np.diag([20.0, 40.0, 0.1, 0.1])  
     R_mat = np.diag([1e-2, 1e-2, 1.0])
     ocp.cost.W = unscale * scipy.linalg.block_diag(Q_mat, R_mat)
 
@@ -111,7 +111,7 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
 
     # Set options
     ocp.solver_options.tf = mpc_dt
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'  # 'GAUSS_NEWTON', 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.nlp_solver_max_iter = 500
