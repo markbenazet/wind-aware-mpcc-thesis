@@ -8,9 +8,6 @@ import matplotlib.pyplot as plt
 
 def main():
 
-    # Initialize the plot
-    fig, ax1, axs, line_uav_traj, line_path_points, line_ref_points, arrow_vector, line_vx, line_vy, line_yaw, line_accel_x, line_accel_y, line_yaw_rate = u.initialize_plot()
-
     # Generate path points from waypoints
     path_points = path_manager.generate_path_from_waypoints()
 
@@ -18,8 +15,8 @@ def main():
     model = FixedWingLateralModel()
 
     # Initialize MPC solver
-    N_horizon = 40
-    Tf = 4.0  
+    N_horizon = 30
+    Tf = 3.0  
     desired_velocity = np.array([20.0, 0.0])
 
     # Initial state for MPC solver 
@@ -30,17 +27,17 @@ def main():
     # Lists to store state and input values for debugging
     state_history = []
     input_history = []
-    reference_history = []
     previous_reference = None
 
     current_state = x0
 
     i = 0
     simulation_time = 0
-    max_simulation_time = 40.0
+    max_simulation_time = 80.0
     dt = mpc_dt
 
     while simulation_time < max_simulation_time:
+        reference_history = []
         
         current_position = current_state[:2]
 
@@ -108,16 +105,13 @@ def main():
         # print(f"Yaw reference: {yaw_reference}")
         # print(f"Full reference: {full_reference}")
         # print(f"optimal input: {u_opt}")
-        # print(f"Simulation time: {simulation_time:.2f} / {max_simulation_time:.2f}")
-
-        u.update_plot(ax1, axs, line_uav_traj, line_path_points, line_ref_points, arrow_vector,
-                      line_vx, line_vy, line_yaw, line_accel_x, line_accel_y, line_yaw_rate,
-                      state_history, path_points, reference_history, input_history, params[:2])
+        print(f"Simulation time: {simulation_time:.2f} / {max_simulation_time:.2f}")
         # print(f"Cost function value: {ocp_solver.get_cost()}")
 
         # Update simulation time
         simulation_time += dt
-
+    
+    u.plot_uav_trajectory_and_state(state_history, path_points, reference_history, input_history, params[:2])
 
 if __name__ == "__main__":
     main()

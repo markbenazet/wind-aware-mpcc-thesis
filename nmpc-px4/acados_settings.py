@@ -66,8 +66,6 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     wrapped_yaw = model.cs_wrap_angle(I_yaw)
 
     # Define parameters
-    w_n = ocp.model.p[0]
-    w_e = ocp.model.p[1]
     n_ref = ocp.model.p[2]
     e_ref = ocp.model.p[3]
     Td_n = ocp.model.p[4]
@@ -103,8 +101,8 @@ def acados_settings(model, N_horizon, Tf, path_points, x0,use_RTI=True):
     ocp.constraints.idxbu = np.array([0, 1, 2])
 
     # Set state constraints for all time steps
-    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, 0.0, -np.pi])
-    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 25.0, 0.0, np.pi])
+    ocp.constraints.lbx = np.array([-1.0e19, -1.0e19, 15.0, 0.0, -2*np.pi])
+    ocp.constraints.ubx = np.array([1.0e19, 1.0e19, 25.0, 0.0, 2*np.pi])
     ocp.constraints.idxbx = np.array([0, 1, 2, 3, 4])
 
     ocp.constraints.x0 = x0
