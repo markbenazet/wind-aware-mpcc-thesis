@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_uav_trajectory_and_state(state_history, path_points, reference_history, input_history, vector_p):
+def plot_uav_trajectory_and_state(state_history, reference_history, input_history, vector_p):
     """
     Plots the UAV trajectory, path points, reference points, and state variables and control inputs.
     Args:
@@ -16,7 +16,6 @@ def plot_uav_trajectory_and_state(state_history, path_points, reference_history,
     # Left subplot for UAV Trajectory
     ax1 = plt.subplot2grid((3, 6), (0, 0), rowspan=3, colspan=4)
     ax1.plot([state[1] for state in state_history], [state[0] for state in state_history], 'b-', label='UAV Trajectory')
-    ax1.plot([p[1] for p in path_points], [p[0] for p in path_points], 'g--', label='Path Points')
     ax1.plot([p[1] for p in reference_history], [p[0] for p in reference_history], 'r.', label='Reference Points')
     ax1.arrow(0, 0, -3 * vector_p[1], -3 * vector_p[0], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
     ax1.set_xlabel('East')
