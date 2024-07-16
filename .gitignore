@@ -10,3 +10,6 @@ c_generated_code/
 
 # Ignore acados_ocp.json
 acados_ocp.json
+
+# Ignore csv files
+*.csv

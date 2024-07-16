@@ -21,41 +21,44 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     I_e = ocp.model.x[1]
     Theta = ocp.model.x[5]
 
-    ocp.cost.yref = np.zeros(4)
+    Q_cont = 0.01
+    Q_lag = 0.01
+    R_1, R_2 = 0.0001, 0.0001
+    R_3 = 0.0001
+    gamma = 0.01
 
-    Q_cont = 1.0
-    Q_lag = 1.0
-    Q = np.diag([Q_cont, Q_lag])
-    R = np.diag([2.0, 2.0, 5.0])
-    gamma = 1.0
+    n_ref, e_ref = path.evaluate_path(Theta)
+    phi = path.get_tangent_angle_from_precomputed(Theta)
 
-    n_ref, e_ref = path.evaluate_path_symbolic(Theta)
-    phi = path.get_tangent_angle_symbolic(Theta)
+    eC = -cs.cos(phi) * (I_n - n_ref) + cs.sin(phi) * (I_e - e_ref)
+    eL = -cs.sin(phi) * (I_n - n_ref) - cs.cos(phi) * (I_e - e_ref)
 
-    e_c = -cs.cos(phi) * (I_n - n_ref) + cs.sin(phi) * (I_e - e_ref)
-    e_l = -cs.sin(phi) * (I_n - n_ref) - cs.cos(phi) * (I_e - e_ref)
+    c_eC = eC*Q_cont*eC
+    c_eL = eL*Q_lag*eL
+    c_aX, c_aY = ocp.model.u[0]*R_1*ocp.model.u[0], ocp.model.u[1]*R_2*ocp.model.u[1]
+    c_yR = ocp.model.u[2]*R_3*ocp.model.u[2]
+    c_vK = -ocp.model.u[3]*gamma
+    
+    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_aX + c_aY + c_yR + c_vK
 
-    ocp.model.cost_expr_ext_cost = (
-        cs.vertcat(e_c, e_l).T @ Q @ cs.vertcat(e_c, e_l) +
-        cs.vertcat(ocp.model.u[:3]).T @ R @ cs.vertcat(ocp.model.u[:3]) -
-        gamma * ocp.model.u[3] * mpc_dt
-    )
+    ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3, 0.0])
+    ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3, 50.0])
+    ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
-    ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3])
-    ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3])
-    ocp.constraints.idxbu = np.array([0, 1, 2])
-
-    ocp.constraints.lbx = np.array([15.0, 0.0, -2*np.pi])
-    ocp.constraints.ubx = np.array([25.0, 0.0, 2*np.pi])
-    ocp.constraints.idxbx = np.array([2, 3, 4])
+    ocp.constraints.lbx = np.array([15.0, 0.0, -2*np.pi, 0.0])
+    ocp.constraints.ubx = np.array([25.0, 0.0, 2*np.pi, len(path.curve)])
+    ocp.constraints.idxbx = np.array([2, 3, 4, 5])
 
     ocp.constraints.x0 = x0
 
     ocp.solver_options.tf = mpc_dt
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+    ocp.solver_options.regularize_method = 'CONVEXIFY'
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    ocp.solver_options.nlp_solver_max_iter = 100
+    ocp.solver_options.nlp_solver_max_iter = 400
+    ocp.solver_options.tol = 1e-4
+
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'

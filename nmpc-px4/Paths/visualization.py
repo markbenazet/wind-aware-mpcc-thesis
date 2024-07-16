@@ -23,5 +23,6 @@ def plot_waypoints_and_path(get_spline_curve):
     plt.show()
 
 # Plot waypoints and path
-path_instance = Path()
-plot_waypoints_and_path(path_instance.get_bspline_curve())
+#path_instance = Path()
+#plot_waypoints_and_path(path_instance.get_bspline_curve())
+#path_instance.precompute_and_save_data()

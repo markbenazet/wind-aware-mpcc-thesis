@@ -10,11 +10,11 @@ def main():
     path = Path()
 
     # Initialize MPC solver
-    N_horizon = 30
-    Tf = 3.0  
+    N_horizon = 10
+    Tf = 1.0  
 
     # Initial state for MPC solver 
-    x0 = np.array([0.0, -100.0, 20.0, 0.0, 0.0, 0.0])  # initial state (x, y, V, yaw)
+    x0 = np.array([0.0, 0.0, 20.0, 0.0, 0.0, 0.0])  # initial state (x, y, V, yaw)
 
     ocp_solver, acados_integrator, mpc_dt = acados_settings(model, N_horizon, Tf, x0, use_RTI=False)
 
