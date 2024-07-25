@@ -46,14 +46,14 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     c_yR = ocp.model.u[2] * R_3 * ocp.model.u[2]
     c_vK = -ocp.model.u[3] * R_4  # Small weight to encourage forward motion
     
-    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_vK 
+    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_vK + c_aX + c_aY + c_yR
 
-    ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3, 0.0])
+    ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3, 0.5])
     ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3, 10.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
-    ocp.constraints.lbx = np.array([15.0, 0.0, -8*np.pi, 0.0])
-    ocp.constraints.ubx = np.array([25.0, 0.0, 8*np.pi, path.total_length])
+    ocp.constraints.lbx = np.array([15.0, 0.0, -2*np.pi, 0.0])
+    ocp.constraints.ubx = np.array([25.0, 0.0, 2*np.pi, path.total_length])
     ocp.constraints.idxbx = np.array([2, 3, 4, 5])
 
     ocp.constraints.x0 = x0
