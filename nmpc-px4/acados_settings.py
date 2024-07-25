@@ -18,22 +18,22 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     ocp.parameter_values = np.zeros((5, 1))
     ocp.cost.cost_type = 'EXTERNAL'
 
-    I_n = ocp.model.p[2]
-    I_e = ocp.model.p[3]
-    Theta = ocp.model.p[4]
+    I_n = ocp.model.x[1]
+    I_e = ocp.model.x[2]
+    Theta = ocp.model.x[5]
 
-    Q_cont = 10.0
-    Q_lag = 1.0
+    n_ref = ocp.model.p[2]
+    e_ref = ocp.model.p[3]
+    
+    Q_cont = 1000.0
+    Q_lag = 100.0
     R_1, R_2 = 1.0, 1.0
     R_3 = 1.0
-    gamma = 1.0
-
-    n_ref, e_ref = path.evaluate_path(Theta)
-    phi = path.get_tangent_angle(Theta)
+    gamma = 0.1
 
     # Calculate errors
-    eC = -cs.cos(phi) * (I_n - n_ref) + cs.sin(phi) * (I_e - e_ref)
-    eL = cs.sin(phi) * (I_n - n_ref) + cs.cos(phi) * (I_e - e_ref)
+    eC = cs.sin(phi) * (e_ref - I_e) - cs.cos(phi) * (n_ref - I_n)
+    eL = cs.cos(phi) * (e_ref - I_e) + cs.sin(phi) * (n_ref - I_n)
 
     c_eC = eC*Q_cont*eC
     c_eL = eL*Q_lag*eL
@@ -41,14 +41,14 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     c_yR = ocp.model.u[2]*R_3*ocp.model.u[2]
     c_vK = -ocp.model.u[3]*gamma
     
-    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_aX + c_aY + c_yR + c_vK
+    ocp.model.cost_expr_ext_cost = c_eC + c_eL 
 
     ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3, 0.0])
-    ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3, 0.001])
+    ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3, 10.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
     ocp.constraints.lbx = np.array([15.0, 0.0, -2*np.pi, 0.0])
-    ocp.constraints.ubx = np.array([25.0, 0.0, 2*np.pi, -1.0])
+    ocp.constraints.ubx = np.array([25.0, 0.0, 2*np.pi, path.total_length])
     ocp.constraints.idxbx = np.array([2, 3, 4, 5])
 
     ocp.constraints.x0 = x0
