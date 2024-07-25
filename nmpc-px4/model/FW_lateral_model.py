@@ -25,7 +25,7 @@ class FixedWingLateralModel:
 
 
         # Parameteres
-        p = cs.MX.sym('p', 2)
+        p = cs.MX.sym('p', 5)
         w_n = p[0]
         w_e = p[1]
 

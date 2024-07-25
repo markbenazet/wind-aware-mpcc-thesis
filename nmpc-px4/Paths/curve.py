@@ -1,142 +1,126 @@
-from Paths.waypoints import path_points
-from scipy.interpolate import make_interp_spline
 import numpy as np
-import csv
+from scipy.interpolate import splprep, splev, BSpline
+from scipy.integrate import simpson
 import casadi as ca
 
 class Path:
-    def __init__(self, csv_file='path_data.csv'):
+    def __init__(self, path_points):
         self.path_points = path_points
-        self.csv_file = csv_file
-        self.curve = self.get_bspline_curve()
-        self.total_length = len(self.curve)  # Total number of points in the curve
-        self.ref_points, self.theta_values, self.phi_values = self.load_precomputed_data()
-        self.n_ref_lut = self.create_interpolant('n_ref')
-        self.e_ref_lut = self.create_interpolant('e_ref')
-        self.phi_lut = self.create_interpolant('phi')
+        self.spline_n, self.spline_e, self.spline_phi, self.total_length, self.spline_points = self.get_bspline_curves()
 
-    def get_bspline_curve(self, n_points=2000):
+    def ensure_strictly_increasing(self, x):
         """
-        Generates a B-spline curve from the given waypoints.
-        Args:
-            path_points (list): List of waypoints [I_n, I_e].
-            n_points (int): Number of points to generate on the B-spline curve.
+        Ensure the elements of the array x are strictly increasing.
+        """
+        for i in range(1, len(x)):
+            if x[i] <= x[i - 1]:
+                x[i] = x[i - 1] + 1e-9
+        return x
+
+    def pad_to_multiple(self, arr, multiple):
+        """
+        Pad the array to make its length a multiple of the specified number.
+        """
+        if len(arr) % multiple != 0:
+            padding_length = multiple - (len(arr) % multiple)
+            arr = np.pad(arr, (0, padding_length), 'constant')
+        return arr
+
+    def get_bspline_curves(self):
+        """
+        Generates B-spline curves for the path and its gradient, and calculates total path length.
         Returns:
-            numpy.array: Array of points on the B-spline curve.
+            tuple: Spline objects for north coordinates, east coordinates, tangent angles, and total path length.
         """
         waypoints = np.array(self.path_points)
-        n = len(waypoints)
-        t = np.linspace(0, n - 1, n)  # Use range based on the number of waypoints
-        t_fine = np.linspace(0, n - 1, n_points)  # Extend t_fine to the number of points
         
-        # Create B-spline representation of the curve
-        spline_x = make_interp_spline(t, waypoints[:, 0], k=3)
-        spline_y = make_interp_spline(t, waypoints[:, 1], k=3)
+        # Create a fine grid for the original waypoints
+        u_original = np.linspace(0, 1, len(waypoints))
         
-        # Evaluate the spline on the fine grid
-        curve_E = spline_x(t_fine)
-        curve_N = spline_y(t_fine)
+        # Interpolate waypoints to generate additional points
+        interp_points = 10 * (len(waypoints) - 1)
+        u_fine = np.linspace(0, 1, interp_points)
+        spline_n_fine = np.interp(u_fine, u_original, waypoints[:, 0])
+        spline_e_fine = np.interp(u_fine, u_original, waypoints[:, 1])
         
-        curve = np.vstack((curve_N, curve_E)).T
-        return curve
+        # Fit B-spline to the interpolated points
+        tck, _ = splprep([spline_n_fine, spline_e_fine], s=0, k=3)
+        tck[0] = self.ensure_strictly_increasing(tck[0])  # Ensure knots are strictly increasing
+        tck[1][0] = self.pad_to_multiple(tck[1][0], len(tck[0]))  # Pad to ensure correct number of elements
+        tck[1][1] = self.pad_to_multiple(tck[1][1], len(tck[0]))  # Pad to ensure correct number of elements
 
-    def precompute_and_save_data(self):
-        """
-        Pre-compute reference points, theta values, and phi values,
-        and save them to a CSV file.
-        """
-        theta_fine = np.arange(self.total_length)  # Use integers for theta
-        ref_points = self.curve
-        phi_values = []
-
-        for theta in theta_fine:
-            phi = self.get_tangent_angle(theta)
-            phi_values.append(phi)
+        # u_fine = u_fine[::-1]
+        x_fine, y_fine = splev(u_fine, tck)
+        spline_points = np.column_stack((y_fine, x_fine))
         
-        with open(self.csv_file, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['theta', 'n_ref', 'e_ref', 'phi'])
-            for i, theta in enumerate(theta_fine):
-                writer.writerow([theta, ref_points[i, 0], ref_points[i, 1], phi_values[i]])
-
-        print(f"Data saved to {self.csv_file}")
-
-    def load_precomputed_data(self):
-        """
-        Load pre-computed data from the CSV file.
-        Returns:
-            numpy.array, numpy.array, numpy.array: Arrays of reference points, theta values, and phi values.
-        """
-        ref_points = []
-        theta_values = []
-        phi_values = []
+        # Calculate derivatives
+        dx_du, dy_du = splev(u_fine, tck, der=1)
         
-        try:
-            with open(self.csv_file, mode='r') as file:
-                reader = csv.reader(file)
-                next(reader)  # Skip header
-                for row in reader:
-                    theta_values.append(float(row[0]))
-                    ref_points.append([float(row[1]), float(row[2])])
-                    phi_values.append(float(row[3]))
-                    
-            ref_points = np.array(ref_points)
-            theta_values = np.array(theta_values)
-            phi_values = np.array(phi_values)
-        except FileNotFoundError:
-            print(f"{self.csv_file} not found. Please run precompute_and_save_data() to generate it.")
+        # Calculate tangent angles
+        phi_values = np.arctan2(dy_du, dx_du)
         
-        return ref_points, theta_values, phi_values
+        # Calculate path length
+        ds = np.sqrt(dx_du**2 + dy_du**2)
+        total_length = simpson(ds, u_fine)
+        
+        # Create B-spline representation of the tangent angle
+        tck_phi, _ = splprep([u_fine * total_length, phi_values], s=0, k=3)
+        tck_phi[0] = self.ensure_strictly_increasing(tck_phi[0])  # Ensure knots are strictly increasing
+        tck_phi[1][1] = self.pad_to_multiple(tck_phi[1][1], len(tck_phi[0]))  # Pad to ensure correct number of elements
+        
+        # Define CasADi functions for evaluation
+        self.spline_n_func = ca.interpolant('spline_n', 'bspline', [tck[0]], tck[1][0])
+        self.spline_e_func = ca.interpolant('spline_e', 'bspline', [tck[0]], tck[1][1])
+        self.spline_phi_func = ca.interpolant('spline_phi', 'bspline', [tck_phi[0]], tck_phi[1][1])
+        
+        return BSpline(tck[0], tck[1][0], tck[2]), BSpline(tck[0], tck[1][1], tck[2]), BSpline(tck_phi[0], tck_phi[1][1], tck_phi[2]), total_length, spline_points
 
-    def get_tangent_angle(self, theta):
+    def evaluate_path(self, s):
         """
-        Calculate the tangent angle at a given theta.
+        Evaluate the path at a given distance s along the path.
         Args:
-            theta (float): Progress variable from 0 to total length of the curve.
+            s (float or MX): Distance along the path, from 0 to total_length.
         Returns:
-            float: Tangent angle (phi) at the given theta.
+            tuple: Coordinates (n_ref, e_ref) at the given s.
         """
-        index = int(theta)
-        if index + 1 < len(self.curve):
-            dx = self.curve[index + 1, 1] - self.curve[index, 1]  # Change in East
-            dy = self.curve[index + 1, 0] - self.curve[index, 0]  # Change in North
-        else:
-            dx = self.curve[index, 1] - self.curve[index - 1, 1]
-            dy = self.curve[index, 0] - self.curve[index - 1, 0]
+        theta = s
         
-        phi = np.arctan2(dx, dy)*180/np.pi  # Note: arctan2(dx, dy) for East-North coordinate system
-        return phi
-    
-    def create_interpolant(self, value_type):
-        if value_type == 'n_ref':
-            values = self.ref_points[:, 0]
-        elif value_type == 'e_ref':
-            values = self.ref_points[:, 1]
-        elif value_type == 'phi':
-            values = self.phi_values
-        else:
-            raise ValueError("Invalid value_type")
-        
-        return ca.interpolant(f'{value_type}_lut', 'linear', [self.theta_values], values)
-
-    def evaluate_path(self, theta):
-        """
-        Evaluate the path at a given theta using pre-computed values and interpolation.
-        Args:
-            theta (float or MX): Progress variable.
-        Returns:
-            MX, MX: Coordinates (n_ref, e_ref) at the given theta.
-        """
-        n_ref = self.n_ref_lut(theta)
-        e_ref = self.e_ref_lut(theta)
+        # Ensure theta is handled properly in CasADi context
+        n_ref = self.spline_n_func(theta)
+        e_ref = self.spline_e_func(theta)
+            
         return n_ref, e_ref
 
-    def get_tangent_angle_from_precomputed(self, theta):
+    def get_tangent_angle(self, s):
         """
-        Get the tangent angle at a given theta using pre-computed values and interpolation.
+        Get the tangent angle at a given distance s along the path.
         Args:
-            theta (float or MX): Progress variable.
+            s (float or MX): Distance along the path, from 0 to total_length.
         Returns:
-            MX: Tangent angle (phi) at the given theta.
+            float: Tangent angle (phi) at the given s.
         """
-        return self.phi_lut(theta)
+        theta = s
+        
+        # Ensure theta is handled properly in CasADi context
+        phi_ref = self.spline_phi_func(theta)
+        
+        return phi_ref
+    
+    def generate_plot_points(self, num_points=1000):
+        """
+        Generate points along the path for plotting.
+        
+        Args:
+            num_points (int): Number of points to generate.
+        
+        Returns:
+            tuple: Arrays of north and east coordinates.
+        """
+        s_values = np.linspace(0, self.total_length, num_points)
+        north_coords = []
+        east_coords = []
+        for s in s_values:
+            n, e = self.evaluate_path(s)
+            north_coords.append(float(n))
+            east_coords.append(float(e))
+        return np.array(north_coords), np.array(east_coords)
