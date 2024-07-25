@@ -12,31 +12,31 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     ocp = AcadosOcp()
     ocp.model = model.fixed_wing_lateral_model()
 
-    Q_cont = 1.0
-    Q_lag = 1.0
+    Q_cont = 20.0
+    Q_lag = 20.0
     R_1 = 0.1
     R_2 = 0.1
     R_3 = 0.1
-    R_4 = 0.1
+    R_4 = 40.0
 
     ocp.dims.N = N_horizon
     mpc_dt = Tf / N_horizon
 
     # Increase number of parameters to include cost weights
-    ocp.parameter_values = np.zeros((5, 1))
+    ocp.parameter_values = np.zeros((2, 1))
     ocp.cost.cost_type = 'EXTERNAL'
 
     # States
     I_n = ocp.model.x[0]
     I_e = ocp.model.x[1]
+    Theta = ocp.model.x[5]
 
     # Parameters (including reference and weights)
-    n_ref = ocp.model.p[2]
-    e_ref = ocp.model.p[3]
-    phi_ref = ocp.model.p[4]
+    n_ref, e_ref = path.evaluate_path(Theta)
+    phi_ref = path.get_tangent_angle(Theta)
 
     # Calculate errors
-    eC = cs.sin(phi_ref) * (e_ref - I_e) - cs.cos(phi_ref) * (n_ref - I_n)
+    eC = -cs.sin(phi_ref) * (e_ref - I_e) + cs.cos(phi_ref) * (n_ref - I_n)
     eL = cs.cos(phi_ref) * (e_ref - I_e) + cs.sin(phi_ref) * (n_ref - I_n)
 
     # Cost function
@@ -46,14 +46,14 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     c_yR = ocp.model.u[2] * R_3 * ocp.model.u[2]
     c_vK = -ocp.model.u[3] * R_4  # Small weight to encourage forward motion
     
-    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_vK
+    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_vK 
 
     ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3, 0.0])
     ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3, 10.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
-    ocp.constraints.lbx = np.array([15.0, 0.0, -2*np.pi, 0.0])
-    ocp.constraints.ubx = np.array([25.0, 0.0, 2*np.pi, path.total_length])
+    ocp.constraints.lbx = np.array([15.0, 0.0, -8*np.pi, 0.0])
+    ocp.constraints.ubx = np.array([25.0, 0.0, 8*np.pi, path.total_length])
     ocp.constraints.idxbx = np.array([2, 3, 4, 5])
 
     ocp.constraints.x0 = x0
@@ -61,11 +61,10 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     # Solver options
     ocp.solver_options.tf = Tf
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-    ocp.solver_options.qp_solver_warm_start = 2
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    ocp.solver_options.nlp_solver_max_iter = 100
-    ocp.solver_options.tol = 1e-4
+    ocp.solver_options.nlp_solver_max_iter = 200
+    ocp.solver_options.tol = 1e-3
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'
