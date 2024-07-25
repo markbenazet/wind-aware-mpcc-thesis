@@ -7,6 +7,10 @@ from Paths.waypoints import path_points
 
 def call_mpcc(x0, ocp_solver, acados_integrator, params, u_opt):
     # From an initial state x0 computes the optimal control input u_opt and the corresponding state trajectory 
+
+    for i in range(ocp_solver.N):
+        ocp_solver.set(i, "x", x0)
+
     return x, u # state and input for all the horizon (matrix)
 
 def warm_start(x0, ocp_solver, u_opt, N_horizon):
