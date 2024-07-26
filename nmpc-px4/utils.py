@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 def plot_uav_trajectory_and_state(state_history, reference_history, input_history, vector_p):
     """
@@ -16,7 +16,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, input_histor
     # Left subplot for UAV Trajectory
     ax1 = plt.subplot2grid((3, 6), (0, 0), rowspan=3, colspan=4)
     ax1.plot([state[1] for state in state_history], [state[0] for state in state_history], 'b-', label='UAV Trajectory')
-    ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'r.', label='Reference Points')
+    ax1.plot([p[1] for p in reference_history], [p[0] for p in reference_history], 'r.', label='Reference Points')
     ax1.arrow(0, 0, -3 * vector_p[1], -3 * vector_p[0], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
     ax1.set_xlabel('East')
     ax1.set_ylabel('North')
@@ -54,4 +54,58 @@ def plot_uav_trajectory_and_state(state_history, reference_history, input_histor
     axs[2].grid()
 
     plt.tight_layout()
+    plt.show()
+
+def plot_warm_start(optimal_history, reference_history, N_horizon, max_iterations):
+    """
+    Plots the UAV trajectory and reference points for warm start.
+    Args:
+        optimal_history (ndarray): Array of optimal state vectors with shape [N_horizon * iterations, 6].
+        reference_history (list): List of reference points [I_n, I_e].
+        N_horizon (int): Number of time steps in the horizon.
+        max_iterations (int): Maximum number of iterations to plot.
+    """
+    fig = plt.figure(figsize=(20, 15))
+
+    # Left subplot for UAV Trajectory
+    ax1 = plt.subplot2grid((3, 6), (0, 0), rowspan=3, colspan=4)
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    
+    for i in range(min(max_iterations, len(optimal_history) // N_horizon)):
+        start_idx = i * N_horizon
+        end_idx = start_idx + N_horizon
+        trajectory = optimal_history[start_idx:end_idx]
+        
+        ax1.plot([state[1] for state in trajectory], 
+                 [state[0] for state in trajectory], 
+                 color=colors[i % len(colors)], 
+                 label=f'Iteration {i+1}')
+        if i >= len(colors):
+            colors.append(np.random.rand(3,))
+    
+    ax1.plot([p[1] for p in reference_history], [p[0] for p in reference_history], 'r.', label='Reference Points')
+    ax1.set_xlabel('East')
+    ax1.set_ylabel('North')
+    ax1.set_title('UAV Trajectory')
+    ax1.legend()
+    ax1.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_horizon_predictions(horizon_history, reference_history):
+    plt.figure(figsize=(12, 8))
+    plt.plot(reference_history[:, 0], reference_history[:, 1], 'k--', label='Reference Path')
+    
+    for i, horizon in enumerate(horizon_history):
+        if i % 10 == 0:  # Plot every 10th horizon to avoid clutter
+            plt.plot(horizon[:, 0], horizon[:, 1], 'r-', alpha=0.3)
+    
+    plt.plot([h[0, 0] for h in horizon_history], [h[0, 1] for h in horizon_history], 'b-', label='Vehicle Trajectory')
+    
+    plt.xlabel('X position')
+    plt.ylabel('Y position')
+    plt.title('Horizon Predictions Over Time')
+    plt.legend()
+    plt.grid(True)
     plt.show()
