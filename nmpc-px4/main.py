@@ -79,7 +79,7 @@ def main():
     N_horizon = 40
     Tf = 8.0
     x0 = np.array([20.0, 20.0, 20.0, 0.0, -np.pi/2.0, 0.0])
-    ocp_solver, acados_integrator, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, use_RTI=False)
+    ocp_solver, acados_integrator, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, use_RTI=True)
 
     state_history = []
     state_history.append(x0)

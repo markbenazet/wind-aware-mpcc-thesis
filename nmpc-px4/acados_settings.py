@@ -12,8 +12,8 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     ocp = AcadosOcp()
     ocp.model = model.fixed_wing_lateral_model()
 
-    Q_cont = 10.0
-    Q_lag = 10.0
+    Q_cont = 3.0
+    Q_lag = 3.0
     R_1 = 0.5
     R_2 = 0.5
     R_3 = 0.5
@@ -35,8 +35,8 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     phi_ref = path.get_tangent_angle(Theta)
 
     # Calculate errors
-    eC = cs.sin(phi_ref) * (y_ref - I_y) - cs.cos(phi_ref) * (x_ref - I_x)
-    eL = cs.cos(phi_ref) * (y_ref - I_y) + cs.sin(phi_ref) * (x_ref - I_x)
+    eC = cs.sin(phi_ref) * (x_ref - I_x) - cs.cos(phi_ref) * (y_ref - I_y)
+    eL = cs.cos(phi_ref) * (x_ref - I_x) + cs.sin(phi_ref) * (y_ref - I_y)
 
     # Cost function
     c_eC = eC * Q_cont * eC
@@ -60,18 +60,12 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
 
     # Solver options
     ocp.solver_options.tf = Tf
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.regularize_method = 'CONVEXIFY'
-    ocp.solver_options.qp_solver_tol_eq = 1e-6
-    ocp.solver_options.qp_solver_tol_ineq = 1e-4
-    ocp.solver_options.qp_solver_tol_stat = 1e-4
-    ocp.solver_options.qp_solver_tol_comp = 1e-4
     ocp.solver_options.nlp_solver_max_iter = 300
     ocp.solver_options.tol = 1e-4
-    ocp.solver_options.sim_method_num_stages = 4
-    ocp.solver_options.sim_method_num_steps = 3
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'
