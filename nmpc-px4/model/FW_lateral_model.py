@@ -8,13 +8,13 @@ class FixedWingLateralModel:
 
     def fixed_wing_lateral_model(self) -> AcadosModel:
         # State variables (assuming no wind)
-        I_n = cs.MX.sym('I_n')      # north position
-        I_e = cs.MX.sym('I_e')      # east position
+        I_x = cs.MX.sym('I_x')      # north position
+        I_y = cs.MX.sym('I_y')      # east position
         B_v_x = cs.MX.sym('B_v_x')  # velocity_x
         B_v_y = cs.MX.sym('B_v_y')  # velocity_y
         I_yaw = cs.MX.sym('I_yaw')  # yaw angle
         Theta = cs.MX.sym('Theta')
-        states = cs.vertcat(I_n, I_e, B_v_x, B_v_y, I_yaw, Theta)
+        states = cs.vertcat(I_x, I_y, B_v_x, B_v_y, I_yaw, Theta)
 
         # Input variables
         B_a_x = cs.MX.sym('B_a_x')      # acceleration x
@@ -26,12 +26,12 @@ class FixedWingLateralModel:
 
         # Parameteres
         p = cs.MX.sym('p', 2)
-        w_n = p[0]
-        w_e = p[1]
+        w_x = p[0]
+        w_y = p[1]
 
         # Define the dynamics equations
-        dn_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_n # derivative of north position
-        de_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_e # derivative of east position
+        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y # derivative of north position
+        dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_x # derivative of east position
         dv_x_dt = B_a_x - B_v_y*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in x
         dv_y_dt = B_a_y + B_v_x*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in y
         dyaw_dt = I_yaw_rate #self.gravity * cs.tan(I_roll) / a_v  # derivative of yaw angle
@@ -39,7 +39,7 @@ class FixedWingLateralModel:
         
 
         # Concatenate the state derivatives
-        state_derivatives = cs.vertcat(dn_dt, de_dt, dv_x_dt, dv_y_dt, dyaw_dt, dtheta_dt)
+        state_derivatives = cs.vertcat(dx_dt, dy_dt, dv_x_dt, dv_y_dt, dyaw_dt, dtheta_dt)
 
         # Create AcadosModel object
         model = AcadosModel()

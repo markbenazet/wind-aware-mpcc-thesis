@@ -14,10 +14,10 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
 
     Q_cont = 10.0
     Q_lag = 10.0
-    R_1 = 2.0
-    R_2 = 2.0
-    R_3 = 2.0
-    R_4 = 5.0
+    R_1 = 0.5
+    R_2 = 0.5
+    R_3 = 0.5
+    R_4 = 0.5
 
     ocp.dims.N = N_horizon
     mpc_dt = Tf / N_horizon
@@ -27,16 +27,16 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     ocp.cost.cost_type = 'EXTERNAL'
 
     # States
-    I_n = ocp.model.x[0]
-    I_e = ocp.model.x[1]
+    I_x = ocp.model.x[0]
+    I_y = ocp.model.x[1]
     Theta = ocp.model.x[5]
 
-    n_ref, e_ref = path.evaluate_path(Theta)
+    x_ref, y_ref = path.evaluate_path(Theta)
     phi_ref = path.get_tangent_angle(Theta)
 
     # Calculate errors
-    eC = -cs.sin(phi_ref) * (e_ref - I_e) + cs.cos(phi_ref) * (n_ref - I_n)
-    eL = cs.cos(phi_ref) * (e_ref - I_e) + cs.sin(phi_ref) * (n_ref - I_n)
+    eC = cs.sin(phi_ref) * (y_ref - I_y) - cs.cos(phi_ref) * (x_ref - I_x)
+    eL = cs.cos(phi_ref) * (y_ref - I_y) + cs.sin(phi_ref) * (x_ref - I_x)
 
     # Cost function
     c_eC = eC * Q_cont * eC
@@ -45,25 +45,33 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     c_yR = ocp.model.u[2] * R_3 * ocp.model.u[2]
     c_vK = -ocp.model.u[3] * R_4  # Small weight to encourage forward motion
     
-    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_vK + c_aX + c_aY
+    ocp.model.cost_expr_ext_cost = c_eC + c_eL + c_vK + c_aX + c_aY + c_yR
 
-    ocp.constraints.lbu = np.array([-0.4, -10.0, -np.pi/3, 0.5])
+    ocp.constraints.lbu = np.array([-0.4, -10.0, -np.pi/3, 0.0])
     ocp.constraints.ubu = np.array([0.4, 10.0, np.pi/3, 10.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
-    ocp.constraints.lbx = np.array([15.0, -8.0, 0.0])
-    ocp.constraints.ubx = np.array([25.0, 8.0, path.total_length])
-    ocp.constraints.idxbx = np.array([2, 3, 5])
+    # Hard constraints on x velocity and theta
+    ocp.constraints.lbx = np.array([15.0, 0.0, 0.0])
+    ocp.constraints.ubx = np.array([25.0,0.0, path.total_length])
+    ocp.constraints.idxbx = np.array([2, 3, 5])  # x velocity and theta
 
     ocp.constraints.x0 = x0
 
     # Solver options
     ocp.solver_options.tf = Tf
-    ocp.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'
+    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
-    ocp.solver_options.nlp_solver_max_iter = 400
-    ocp.solver_options.tol = 1e-3
+    ocp.solver_options.regularize_method = 'CONVEXIFY'
+    ocp.solver_options.qp_solver_tol_eq = 1e-6
+    ocp.solver_options.qp_solver_tol_ineq = 1e-4
+    ocp.solver_options.qp_solver_tol_stat = 1e-4
+    ocp.solver_options.qp_solver_tol_comp = 1e-4
+    ocp.solver_options.nlp_solver_max_iter = 300
+    ocp.solver_options.tol = 1e-4
+    ocp.solver_options.sim_method_num_stages = 4
+    ocp.solver_options.sim_method_num_steps = 3
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'
