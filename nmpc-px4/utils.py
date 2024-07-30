@@ -4,12 +4,11 @@ from matplotlib.animation import FuncAnimation as AnimationFunc
 from matplotlib.collections import LineCollection
 
 def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p):
-    fig = plt.figure(figsize=(20, 15))
+    fig = plt.figure(figsize=(20, 20))  # Increased figure height to accommodate the new plot
 
-    ax1 = plt.subplot2grid((3, 6), (0, 0), rowspan=3, colspan=4)
+    ax1 = plt.subplot2grid((4, 6), (0, 0), rowspan=4, colspan=4)
     ax1.plot([state[0] for state in state_history], [state[1] for state in state_history], 'b-', label='UAV Trajectory')
     ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'r.', label='Reference Points')
-    ax1.plot([s[0] for s in solver_history], [s[1] for s in solver_history], 'g.', label='Solver Points')
     ax1.arrow(0, 0, -3 * vector_p[0], -3 * vector_p[1], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
@@ -17,7 +16,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     ax1.legend()
     ax1.grid()
 
-    axs = [plt.subplot2grid((3, 6), (i, 4), colspan=2) for i in range(3)]
+    axs = [plt.subplot2grid((4, 6), (i, 4), colspan=2) for i in range(4)]  # Now creating 4 subplots
 
     axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
     axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
@@ -36,11 +35,19 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[2].plot([input[0] for input in input_history], 'b', label='Acceleration_x')
     axs[2].plot([input[1] for input in input_history], 'g', label='Acceleration_y')
     axs[2].plot([input[2] for input in input_history], 'r', label='Yaw_rate')
+    axs[2].plot([input[3] for input in input_history], 'c', label='Speed')
     axs[2].set_xlabel('Time Step')
     axs[2].set_ylabel('Input Value')
     axs[2].legend()
     axs[2].set_title('Control Inputs')
     axs[2].grid()
+
+    # New plot for state[5] (theta)
+    axs[3].plot([state[5] for state in state_history], 'purple')
+    axs[3].set_xlabel('Time Step')
+    axs[3].set_ylabel('Theta')
+    axs[3].set_title('UAV Theta (Progress Along Path)')
+    axs[3].grid()
 
     plt.tight_layout()
     plt.show()
