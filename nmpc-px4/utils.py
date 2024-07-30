@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation as AnimationFunc
 from matplotlib.collections import LineCollection
 
-def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p):
-    fig = plt.figure(figsize=(20, 20))  # Increased figure height to accommodate the new plot
+def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p, cost_history):
+    fig = plt.figure(figsize=(20, 25))  # Increased figure height to accommodate the new plot
 
-    ax1 = plt.subplot2grid((4, 6), (0, 0), rowspan=4, colspan=4)
+    ax1 = plt.subplot2grid((5, 6), (0, 0), rowspan=5, colspan=4)
     ax1.plot([state[0] for state in state_history], [state[1] for state in state_history], 'b-', label='UAV Trajectory')
     ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'r.', label='Reference Points')
     ax1.arrow(0, 0, -3 * vector_p[0], -3 * vector_p[1], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
@@ -16,7 +16,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     ax1.legend()
     ax1.grid()
 
-    axs = [plt.subplot2grid((4, 6), (i, 4), colspan=2) for i in range(4)]  # Now creating 4 subplots
+    axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]  # Now creating 5 subplots
 
     axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
     axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
@@ -42,12 +42,18 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[2].set_title('Control Inputs')
     axs[2].grid()
 
-    # New plot for state[5] (theta)
     axs[3].plot([state[5] for state in state_history], 'purple')
     axs[3].set_xlabel('Time Step')
     axs[3].set_ylabel('Theta')
     axs[3].set_title('UAV Theta (Progress Along Path)')
     axs[3].grid()
+
+    # New plot for cost
+    axs[4].plot(cost_history, 'orange')
+    axs[4].set_xlabel('Time Step')
+    axs[4].set_ylabel('Cost')
+    axs[4].set_title('MPC Cost')
+    axs[4].grid()
 
     plt.tight_layout()
     plt.show()
@@ -76,95 +82,121 @@ def plot_warm_start(optimal_history_list, reference_history, N_horizon, max_iter
     plt.tight_layout()
     plt.show()
 
-def plot_horizon_predictions(horizon_history, reference_history):
-    plt.figure(figsize=(12, 8))
-    plt.plot(reference_history[:, 0], reference_history[:, 1], 'k--', label='Reference Path')
+def animate_horizons(horizons, plane_states, input_history, cost_history, N_horizon, max_simulation_time, horizon_time, sim_dt, path_points=None, interval=100, save_animation=False):
+    fig = plt.figure(figsize=(20, 25))
     
-    for i, horizon in enumerate(horizon_history):
-        if i % 10 == 0:  # Plot every 10th horizon to avoid clutter
-            plt.plot(horizon[:, 0], horizon[:, 1], 'r-', alpha=0.3)
-    
-    plt.plot([h[0, 0] for h in horizon_history], [h[0, 1] for h in horizon_history], 'b-', label='Vehicle Trajectory')
-    
-    plt.xlabel('X position')
-    plt.ylabel('Y position')
-    plt.title('Horizon Predictions Over Time')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-def animate_horizons(horizons, plane_states, N_horizon, max_simulation_time, horizon_time, sim_dt, path_points=None, interval=100, save_animation=False):
-    fig, ax = plt.subplots(figsize=(15, 12))
-    
-    valid_horizons = []
-    valid_states = []
-    for i, (h, s) in enumerate(zip(horizons, plane_states)):
-        if h.ndim == 2 and h.shape[1] >= 2 and isinstance(s, (list, np.ndarray)) and len(s) >= 2:
-            valid_horizons.append(h)
-            valid_states.append(s)
-        else:
-            print(f"Skipping invalid data at index {i}. Horizon shape: {h.shape if isinstance(h, np.ndarray) else type(h)}, State: {s}")
-    
-    if not valid_horizons or not valid_states:
-        raise ValueError("No valid data to animate")
+    main_ax = plt.subplot2grid((5, 6), (0, 0), rowspan=5, colspan=4)
+    axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]
     
     if path_points is not None:
-        ax.plot(path_points[:, 0], path_points[:, 1], 'k--', alpha=0.5, label='Reference Path')
+        main_ax.plot(path_points[:, 0], path_points[:, 1], 'k--', alpha=0.5, label='Reference Path')
     
     horizon_lines = LineCollection([], colors='blue', alpha=0.3)
-    ax.add_collection(horizon_lines)
+    main_ax.add_collection(horizon_lines)
     
-    current_predicted_point, = ax.plot([], [], 'bo', markersize=8, label='Predicted Position')
-    actual_point, = ax.plot([], [], 'ro', markersize=10, label='Actual Position')
-    actual_trajectory, = ax.plot([], [], 'r-', linewidth=2, alpha=0.7, label='Actual Trajectory')
+    current_predicted_point, = main_ax.plot([], [], 'bo', markersize=8, label='Predicted Position')
+    actual_point, = main_ax.plot([], [], 'ro', markersize=10, label='Actual Position')
+    actual_trajectory, = main_ax.plot([], [], 'r-', linewidth=2, alpha=0.7, label='Actual Trajectory')
     
-    all_x = np.concatenate([h[:, 0] for h in valid_horizons] + [[s[0]] for s in valid_states])
-    all_y = np.concatenate([h[:, 1] for h in valid_horizons] + [[s[1]] for s in valid_states])
+    all_x = np.concatenate([h[:, 0] for h in horizons] + [[s[0] for s in plane_states]])
+    all_y = np.concatenate([h[:, 1] for h in horizons] + [[s[1] for s in plane_states]])
     
     x_range = np.max(all_x) - np.min(all_x)
     y_range = np.max(all_y) - np.min(all_y)
-    ax.set_xlim(np.min(all_x) - 0.2*x_range, np.max(all_x) + 0.2*x_range)
-    ax.set_ylim(np.min(all_y) - 0.2*y_range, np.max(all_y) + 0.2*y_range)
+    main_ax.set_xlim(np.min(all_x) - 0.2*x_range, np.max(all_x) + 0.2*x_range)
+    main_ax.set_ylim(np.min(all_y) - 0.2*y_range, np.max(all_y) + 0.2*y_range)
     
-    ax.set_xlabel('X position')
-    ax.set_ylabel('Y position')
-    ax.set_title('Evolution of Predicted Horizons and Actual Trajectory')
-    ax.legend()
+    main_ax.set_xlabel('X position')
+    main_ax.set_ylabel('Y position')
+    main_ax.set_title('Evolution of Predicted Horizons and Actual Trajectory')
+    main_ax.legend()
     
-    time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+    time_text = main_ax.text(0.02, 0.95, '', transform=main_ax.transAxes)
     
+    # Initialize subplots
+    velocity_lines = [axs[0].plot([], [], label=label)[0] for label in ['V_x', 'V_y']]
+    axs[0].set_xlabel('Time Step')
+    axs[0].set_ylabel('Velocity (m/s)')
+    axs[0].set_title('UAV Velocity')
+    axs[0].legend()
+    axs[0].grid()
+
+    yaw_line, = axs[1].plot([], [], 'g')
+    axs[1].set_xlabel('Time Step')
+    axs[1].set_ylabel('Yaw (radians)')
+    axs[1].set_title('UAV Yaw')
+    axs[1].grid()
+
+    input_lines = [axs[2].plot([], [], label=label)[0] for label in ['Acceleration_x', 'Acceleration_y', 'Yaw_rate', 'Speed']]
+    axs[2].set_xlabel('Time Step')
+    axs[2].set_ylabel('Input Value')
+    axs[2].set_title('Control Inputs')
+    axs[2].legend()
+    axs[2].grid()
+
+    theta_line, = axs[3].plot([], [], 'purple')
+    axs[3].set_xlabel('Time Step')
+    axs[3].set_ylabel('Theta')
+    axs[3].set_title('UAV Theta (Progress Along Path)')
+    axs[3].grid()
+
+    cost_line, = axs[4].plot([], [], 'orange')
+    axs[4].set_xlabel('Time Step')
+    axs[4].set_ylabel('Cost')
+    axs[4].set_title('MPC Cost')
+    axs[4].grid()
+
     def init():
         horizon_lines.set_segments([])
         current_predicted_point.set_data([], [])
         actual_point.set_data([], [])
         actual_trajectory.set_data([], [])
         time_text.set_text('')
-        return horizon_lines, current_predicted_point, actual_point, actual_trajectory, time_text
+        for line in velocity_lines + input_lines + [yaw_line, theta_line, cost_line]:
+            line.set_data([], [])
+        return [horizon_lines, current_predicted_point, actual_point, actual_trajectory, time_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
 
     def update(frame):
-        if frame < len(valid_horizons):
-            current_time = frame * sim_dt
-            horizon = valid_horizons[frame]
-            actual_state = valid_states[frame]
-            
-            segments = np.array([horizon[i:i+2, :2] for i in range(min(N_horizon-1, len(horizon)-1))])
-            horizon_lines.set_segments(segments)
-            
-            current_predicted_point.set_data(horizon[0, 0], horizon[0, 1])
-            
-            actual_point.set_data(actual_state[0], actual_state[1])
-            actual_trajectory.set_data([state[0] for state in valid_states[:frame+1]],
-                                       [state[1] for state in valid_states[:frame+1]])
-            
-            time_text.set_text(f'Time: {current_time:.2f}s / {max_simulation_time:.2f}s\n'
-                               f'Horizon: {horizon_time:.2f}s')
+        current_time = frame * sim_dt
+        horizon = horizons[frame]
+        actual_state = plane_states[frame]
         
-        return horizon_lines, current_predicted_point, actual_point, actual_trajectory, time_text
+        segments = np.array([horizon[i:i+2, :2] for i in range(min(N_horizon-1, len(horizon)-1))])
+        horizon_lines.set_segments(segments)
+        
+        current_predicted_point.set_data(horizon[0, 0], horizon[0, 1])
+        
+        actual_point.set_data(actual_state[0], actual_state[1])
+        actual_trajectory.set_data([state[0] for state in plane_states[:frame+1]],
+                                   [state[1] for state in plane_states[:frame+1]])
+        
+        time_text.set_text(f'Time: {current_time:.2f}s / {max_simulation_time:.2f}s\n'
+                           f'Horizon: {horizon_time:.2f}s')
+        
+        # Update subplots
+        for i, line in enumerate(velocity_lines):
+            line.set_data(range(frame+1), [state[2+i] for state in plane_states[:frame+1]])
+        
+        yaw_line.set_data(range(frame+1), [state[4] for state in plane_states[:frame+1]])
+        
+        for i, line in enumerate(input_lines):
+            line.set_data(range(frame+1), [input[i] for input in input_history[:frame+1]])
+        
+        theta_line.set_data(range(frame+1), [state[5] for state in plane_states[:frame+1]])
+        
+        cost_line.set_data(range(frame+1), cost_history[:frame+1])
+        
+        for ax in axs:
+            ax.relim()
+            ax.autoscale_view()
+        
+        return [horizon_lines, current_predicted_point, actual_point, actual_trajectory, time_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
 
-    total_frames = len(valid_horizons)
-    anim = AnimationFunc(fig, update, frames=total_frames, init_func=init, blit=True, interval=interval)
+    total_frames = len(horizons)
+    anim = AnimationFunc(fig, update, frames=total_frames, init_func=init, blit=False, interval=interval)
     
     if save_animation:
         anim.save('horizon_evolution.gif', writer='pillow')
     
+    plt.tight_layout()
     return anim

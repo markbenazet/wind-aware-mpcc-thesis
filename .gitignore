@@ -13,3 +13,6 @@ acados_ocp.json
 
 # Ignore csv files
 *.csv
+
+*.gif
+
