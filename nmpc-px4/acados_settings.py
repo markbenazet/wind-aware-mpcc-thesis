@@ -5,19 +5,19 @@ from model.FW_lateral_model import FixedWingLateralModel
 from Paths.curve import Path
 from Paths.waypoints import path_points
 
-def acados_settings(model, N_horizon, Tf, x0, use_RTI):
+def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     model = FixedWingLateralModel()
-    path = Path(path_points)
+    path = Path(path_points, num_laps)
 
     ocp = AcadosOcp()
     ocp.model = model.fixed_wing_lateral_model()
 
     Q_cont = 1000.0
-    Q_lag = 200.0
+    Q_lag = 500.0
     R_1 = 5.0
     R_2 = 5.0
     R_3 = 3.0
-    R_4 = 0.1
+    R_4 = 3.0
 
     ocp.dims.N = N_horizon
     mpc_dt = Tf / N_horizon
@@ -46,13 +46,13 @@ def acados_settings(model, N_horizon, Tf, x0, use_RTI):
     c_vK = -ocp.model.u[3] * R_4  # Small weight to encourage forward motion
     
     ocp.model.cost_expr_ext_cost = c_vK + c_eC + c_aX + c_aY + c_yR + c_eL
-    ocp.constraints.lbu = np.array([-0.4, -10.0, -np.pi/3, 0.0])
-    ocp.constraints.ubu = np.array([0.4, 10.0, np.pi/3, 50.0])
+    ocp.constraints.lbu = np.array([-0.4, -15.0, -np.pi/3, 0.0])
+    ocp.constraints.ubu = np.array([0.4, 15.0, np.pi/3, 50.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
     # Hard constraints on x velocity and theta
     ocp.constraints.lbx = np.array([15.0, 0.0, 0.0])
-    ocp.constraints.ubx = np.array([25.0,0.0, path.total_length])
+    ocp.constraints.ubx = np.array([25.0,0.0, path.extended_length])
     ocp.constraints.idxbx = np.array([2, 3, 5])  # x velocity and theta
 
     ocp.constraints.x0 = x0

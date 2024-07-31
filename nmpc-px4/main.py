@@ -10,11 +10,12 @@ import casadi as cs
 
 def main():
     model = FixedWingLateralModel()
-    path = Path(path_points)
+    num_laps = 3
+    path = Path(path_points, num_laps)
     N_horizon = 40
-    Tf = 12.0
+    Tf = 8.0
     x0 = np.array([20.0, 50.0, 20.0, 0.0, 0.0, 0.0])
-    ocp_solver, acados_integrator, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, use_RTI=False)
+    ocp_solver, acados_integrator, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)
     
     state_history = []
     state_history.append(x0)
@@ -26,7 +27,7 @@ def main():
     simulation_time = 0
     max_simulation_time = 60.0
 
-    params = np.array([2.0, 0.0]) # Wind parameters
+    params = np.array([0.0, 0.0]) # Wind parameters
 
     optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
     current_state = x0.copy()
@@ -38,7 +39,6 @@ def main():
         state_solver_history.append(x_opt[0])
 
         apply_control_input = u_opt[0,:]
-         
         new_state = acados_integrator.simulate(current_state, apply_control_input, params, mpc_dt)
         
         state_history.append(new_state)

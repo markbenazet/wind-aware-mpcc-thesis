@@ -3,18 +3,17 @@ import math
 # List of waypoints defined as (north, east) tuples
 path_points = [
     (0.0, 0.0),
-    (0.0, 200.0),
-    (0.0, 400.0),
-    (0.0, 600.0),
-    (0.0, 800.0),
-    (0.0, 1000.0),
-    (0.0, 1200.0),
-    (0.0, 1400.0),
-    (0.0, 1600.0),
-    (0.0, 1800.0),
-    (0.0, 2000.0),
-    (0.0, 2200.0),
-    (0.0, 2400.0)
+    (20.0, 200.0),
+    (40.0, 400.0),
+    (60.0, 600.0),
+    (80.0, 800.0),
+    (100.0, 1000.0),
+    (120.0, 1200.0),
+    (100.0, 1400.0),
+    (80.0, 1600.0),
+    (60.0, 1800.0),
+    (40.0, 2000.0),
+    (20.0, 2200.0)
 ]
 
 # # Generate additional waypoints with curves
@@ -28,4 +27,7 @@ path_points = [
 #     x = circle_center_x + radius * math.cos(angle)  # X-coordinate of the waypoint
 #     y = circle_center_y + radius * math.sin(angle)  # Y-coordinate of the waypoint
 #     path_points.append((x, y))
+
+# # Append the first waypoint of the circle to close it
+# path_points.append(path_points[0])
 

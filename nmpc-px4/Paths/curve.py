@@ -5,9 +5,17 @@ from scipy.optimize import minimize_scalar
 import casadi as ca
 
 class Path:
-    def __init__(self, path_points):
+    def __init__(self, path_points, num_laps):
         self.path_points = path_points
+        self.num_laps = num_laps
         self.spline_x, self.spline_y, self.spline_phi, self.total_length, self.spline_points = self.get_bspline_curves()
+        self.is_closed = self.check_if_closed()
+        self.extended_length = self.total_length * self.num_laps if self.is_closed else self.total_length
+
+    def check_if_closed(self):
+        start_point = np.array(self.path_points[0])
+        end_point = np.array(self.path_points[-1])
+        return np.linalg.norm(start_point - end_point) < 1e-3
 
     def get_bspline_curves(self):
         waypoints = np.array(self.path_points)
@@ -49,6 +57,9 @@ class Path:
                 spline_points)
 
     def evaluate_path(self, theta):
+        if self.is_closed:
+            theta = ca.fmod(theta, self.total_length)
+        
         if isinstance(theta, (float, int)):
             x_ref = float(self.spline_x_func(theta/self.total_length))
             y_ref = float(self.spline_y_func(theta/self.total_length))
@@ -58,6 +69,9 @@ class Path:
         return x_ref, y_ref
 
     def get_tangent_angle(self, theta):
+        if self.is_closed:
+            theta = ca.fmod(theta, self.total_length)
+        
         if isinstance(theta, (float, int)):
             return float(self.spline_phi_func(theta/self.total_length))
         else:
