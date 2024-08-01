@@ -60,7 +60,6 @@ def call_mpcc(previous_x, previous_u, ocp_solver, current_state, params, N_horiz
     for i in range(N_horizon):
         X[i, :] = ocp_solver.get(i, 'x')
         U[i, :] = ocp_solver.get(i, 'u')
-        X[i, 4] = model.np_wrap_angle(X[i,4])
 
     # print("Cost value: ", ocp_solver.get_cost())
 

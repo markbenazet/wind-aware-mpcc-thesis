@@ -12,12 +12,12 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     ocp = AcadosOcp()
     ocp.model = model.fixed_wing_lateral_model()
 
-    Q_cont = 10.0
+    Q_cont = 20.0
     Q_lag = 10.0
     R_1 = 5.0
     R_2 = 5.0
     R_3 = 3.0
-    R_4 = 10.0
+    R_4 = 7.0
 
     ocp.dims.N = N_horizon
     mpc_dt = Tf / N_horizon
@@ -60,11 +60,12 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     # Solver options
     ocp.solver_options.tf = Tf
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+    ocp.solver_options.nlp_solver_ext_qp_res = 1
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.regularize_method = 'PROJECT'
-    ocp.solver_options.nlp_solver_max_iter = 300
-    ocp.solver_options.tol = 1e-3
+    ocp.solver_options.nlp_solver_max_iter = 100
+    ocp.solver_options.tol = 1e-4
 
     if use_RTI:
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'

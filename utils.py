@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation as AnimationFunc
 from matplotlib.collections import LineCollection
 
+
 def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p, cost_history):
     fig = plt.figure(figsize=(20, 25))  # Increased figure height to accommodate the new plot
 

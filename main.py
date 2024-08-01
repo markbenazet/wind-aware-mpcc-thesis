@@ -27,7 +27,7 @@ def main():
     simulation_time = 0
     max_simulation_time = 60.0
 
-    params = np.array([0.0, 0.0]) # Wind parameters
+    params = np.array([4.0, 0.0]) # Wind parameters
 
     optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
     current_state = x0.copy()
@@ -36,10 +36,11 @@ def main():
         x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver, current_state, params, N_horizon, model)
 
         horizon_history.append(x_opt)
-        state_solver_history.append(x_opt[0])
+        state_solver_history.append(x_opt[1])
 
         apply_control_input = u_opt[0,:]
-        new_state = acados_integrator.simulate(current_state, apply_control_input, params, mpc_dt)
+        new_state = acados_integrator.simulate(current_state, apply_control_input)
+        new_state[4] = model.np_wrap_angle(new_state[4])
         
         state_history.append(new_state)
         input_history.append(apply_control_input)
