@@ -1,0 +1,23 @@
+# Ignore build, install, and log directories
+/build/
+/install/
+
+# Ignore Python cache files
+__pycache__/
+
+model/__pycache__/
+
+Paths/__pycache__/
+
+# Ignore generated code
+c_generated_code/
+
+# Ignore acados_ocp.json
+acados_ocp.json
+
+# Ignore csv files
+*.csv
+
+*.gif
+
+*.pyc
