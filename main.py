@@ -13,7 +13,7 @@ def main():
     num_laps = 3
     path = Path(path_points, num_laps)
     N_horizon = 40
-    Tf = 8.0
+    Tf = 4.0
     x0 = np.array([0.0, 0.0, 20.0, 0.0, 0.0, 0.0])
     params = np.array([[-5],[-5]])
 
