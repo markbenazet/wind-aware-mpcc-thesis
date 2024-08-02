@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils as u
 
-def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=30, cost_threshold=1e-3):
+def warm_start(x0, ocp_solver, N_horizon, path, model, max_iter=30, cost_threshold=1e-3):
     optimal_x = np.tile(x0, (N_horizon, 1))
     optimal_theta = path.project_to_path(x0[0], x0[1])
     optimal_x[:, 5] = optimal_theta
@@ -14,7 +14,7 @@ def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=30, cost
     
     for idx in range(max_iter):
         # Use the existing call_mpcc function
-        new_x, new_u = call_mpcc(optimal_x, optimal_u, ocp_solver, x0, params, N_horizon, model)
+        new_x, new_u = call_mpcc(optimal_x, optimal_u, ocp_solver, x0, N_horizon, model)
         
         
         optimal_x, optimal_u = new_x, new_u
@@ -31,7 +31,7 @@ def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=30, cost
 
     return optimal_x, optimal_u
 
-def call_mpcc(previous_x, previous_u, ocp_solver, current_state, params, N_horizon, model):
+def call_mpcc(previous_x, previous_u, ocp_solver, current_state, N_horizon, model):
     # From an initial state x0 computes the optimal control input u_opt and the corresponding state trajectory 
 
     # Set initial state
@@ -39,10 +39,9 @@ def call_mpcc(previous_x, previous_u, ocp_solver, current_state, params, N_horiz
     ocp_solver.set(0, 'ubx', current_state)
 
     # Update MPC reference for all prediction steps
-    for idx in range(1,N_horizon):
+    for idx in range(N_horizon):
         ocp_solver.set(idx, 'x', previous_x[idx, :])
         ocp_solver.set(idx, 'u', previous_u[idx, :])
-        ocp_solver.set(idx, 'p', params)
 
 
     # print ("current_state", current_state)

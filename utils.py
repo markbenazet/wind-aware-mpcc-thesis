@@ -4,20 +4,23 @@ from matplotlib.animation import FuncAnimation as AnimationFunc
 from matplotlib.collections import LineCollection
 
 
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Cursor
+
 def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p, cost_history):
-    fig = plt.figure(figsize=(20, 25))  # Increased figure height to accommodate the new plot
+    fig = plt.figure(figsize=(20, 25))
 
     ax1 = plt.subplot2grid((5, 6), (0, 0), rowspan=5, colspan=4)
     ax1.plot([state[0] for state in state_history], [state[1] for state in state_history], 'b-', label='UAV Trajectory')
     ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'r.', label='Reference Points')
-    ax1.arrow(0, 0, -3 * vector_p[0], -3 * vector_p[1], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
+    ax1.arrow(0, 0, 3 * vector_p[0,0], 3 * vector_p[1,0], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
     ax1.set_title('UAV Trajectory')
     ax1.legend()
     ax1.grid()
 
-    axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]  # Now creating 5 subplots
+    axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]
 
     axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
     axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
@@ -49,7 +52,6 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[3].set_title('UAV Theta (Progress Along Path)')
     axs[3].grid()
 
-    # New plot for cost
     axs[4].plot(cost_history, 'orange')
     axs[4].set_xlabel('Time Step')
     axs[4].set_ylabel('Cost')
@@ -57,6 +59,29 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[4].grid()
 
     plt.tight_layout()
+
+    # Add vertical lines to all subplots
+    vlines = [ax.axvline(x=0, color='r', linestyle='--', visible=False) for ax in axs]
+    
+    # Add a cursor to the trajectory plot
+    cursor = Cursor(ax1, useblit=True, color='red', linewidth=1)
+
+    # Event handler for mouse clicks
+    def on_click(event):
+        if event.inaxes == ax1:
+            x, y = event.xdata, event.ydata
+            distances = [(x - state[0])**2 + (y - state[1])**2 for state in state_history]
+            closest_index = distances.index(min(distances))
+            
+            for vline in vlines:
+                vline.set_xdata(closest_index)
+                vline.set_visible(True)
+            
+            fig.canvas.draw_idle()
+
+    # Connect the event handler
+    fig.canvas.mpl_connect('button_press_event', on_click)
+
     plt.show()
 
 def plot_warm_start(optimal_history_list, reference_history, N_horizon, max_iterations):

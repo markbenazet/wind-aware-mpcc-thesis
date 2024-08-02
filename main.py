@@ -15,6 +15,8 @@ def main():
     N_horizon = 40
     Tf = 8.0
     x0 = np.array([0.0, 0.0, 20.0, 0.0, 0.0, 0.0])
+    params = np.array([[5],[0]])
+
     ocp_solver, acados_integrator, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)
     
     state_history = []
@@ -27,13 +29,11 @@ def main():
     simulation_time = 0
     max_simulation_time = 60.0
 
-    params = np.array([4.0, 0.0]) # Wind parameters
-
-    optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
+    optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model)
     current_state = x0.copy()
 
     while simulation_time < max_simulation_time:
-        x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver, current_state, params, N_horizon, model)
+        x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver, current_state, N_horizon, model)
 
         horizon_history.append(x_opt)
         state_solver_history.append(x_opt[1])

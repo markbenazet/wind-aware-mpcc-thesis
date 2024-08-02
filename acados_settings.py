@@ -13,7 +13,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     ocp.model = model.fixed_wing_lateral_model()
 
     Q_cont = 20.0
-    Q_lag = 10.0
+    Q_lag = 15.0
     R_1 = 5.0
     R_2 = 5.0
     R_3 = 3.0
@@ -23,7 +23,6 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     mpc_dt = Tf / N_horizon
 
     # Increase number of parameters to include cost weights
-    ocp.parameter_values = np.zeros((2, 1))
     ocp.cost.cost_type = 'EXTERNAL'
 
     # States
