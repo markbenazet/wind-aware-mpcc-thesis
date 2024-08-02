@@ -23,9 +23,16 @@ class FixedWingLateralModel:
         v_k = cs.MX.sym('speed')
         controls = cs.vertcat(B_a_x, B_a_y, I_yaw_rate, v_k)
 
+
+        # Parameteres
+        p = cs.MX.sym('p', 2)
+        w = p[0:2]
+        w_x = w[0]
+        w_y = w[1]
+
         # Define the dynamics equations
-        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + 0 # derivative of north position
-        dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + 5.0 # derivative of east position
+        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y # derivative of north position
+        dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_x # derivative of east position
         dv_x_dt = B_a_x + B_v_y*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in x
         dv_y_dt = B_a_y - B_v_x*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in y
         dyaw_dt = I_yaw_rate #self.gravity * cs.tan(I_roll) / a_v  # derivative of yaw angle
@@ -41,6 +48,7 @@ class FixedWingLateralModel:
         model.x = states  # state vector
         model.u = controls  # control vector
         model.name = self.model_name  # model name
+        model.p = p  # parameters
 
         return model
     
