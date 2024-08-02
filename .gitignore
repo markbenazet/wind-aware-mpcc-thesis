@@ -19,3 +19,9 @@ acados_ocp.json
 
 # Ignore gif files
 *.gif
+
+# Ignore test directory
+/test/
+
+# Ignore __init__.py files
+**/__init__.py
