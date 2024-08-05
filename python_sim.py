@@ -25,7 +25,7 @@ def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=30, cost
             break
         prev_cost = current_cost
     
-    u.plot_warm_start(optimal_x_history, path.spline_points, N_horizon, max_iterations=idx)
+    # u.plot_warm_start(optimal_x_history, path.spline_points, N_horizon, max_iterations=idx)
 
     return optimal_x, optimal_u
 

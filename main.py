@@ -56,10 +56,10 @@ def main():
     reference_history = path.spline_points
     vector_p = params
 
-    u.plot_uav_trajectory_and_state(state_history, reference_history, state_solver_history, input_history, vector_p, cost_history)
+    # u.plot_uav_trajectory_and_state(state_history, reference_history, state_solver_history, input_history, vector_p, cost_history)
     
     anim = u.animate_horizons(horizon_history, state_history, input_history, cost_history, 
-                        N_horizon, max_simulation_time, Tf, mpc_dt, 
+                        N_horizon, max_simulation_time, Tf, mpc_dt, params, 
                         path_points=path.spline_points, interval=100, save_animation=True)
     plt.show()
 
