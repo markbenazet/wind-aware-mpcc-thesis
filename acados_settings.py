@@ -14,7 +14,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
 
     Q_cont = 20.0
     Q_lag = 15.0
-    R_1 = 5.0
+    R_1 = 20.0
     R_2 = 5.0
     R_3 = 3.0
     R_4 = 7.0

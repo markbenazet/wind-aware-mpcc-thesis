@@ -1,18 +1,57 @@
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation as AnimationFunc
 from matplotlib.collections import LineCollection
-
-
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
+from matplotlib.patches import Polygon
 from matplotlib.widgets import Cursor
+
+
+def load_airplane_coords(csv_file):
+    with open(csv_file, 'r') as file:
+        reader = csv.reader(file)
+        coords = [list(map(float, row)) for row in reader]
+    return np.array(coords)
+
+def scale_coords(coords, scale_factor):
+    # Center the coordinates
+    centered_x = coords[:, 0] - 5.9389
+    centered_y = coords[:, 1] - 5.9961
+    
+    # Scale the coordinates
+    scaled_x = centered_x * scale_factor
+    scaled_y = centered_y * scale_factor
+    
+    # Combine x and y coordinates
+    scaled = np.column_stack((scaled_x, scaled_y))
+    
+    return scaled
+
+def create_airplane_polygon(csv_file, scale_factor=0.01):
+    coords = load_airplane_coords(csv_file)
+    scaled_coords = scale_coords(coords, scale_factor)
+    return scaled_coords
+
+def normalize_angle(angle):
+    """Normalize angle to [-π, π]"""
+    return (angle + np.pi) % (2 * np.pi) - np.pi
+
+def accumulate_angle(angles):
+    """Convert regulated angles to continuous angles"""
+    diff = np.diff(angles)
+    diff[diff > np.pi] -= 2 * np.pi
+    diff[diff < -np.pi] += 2 * np.pi
+    return np.concatenate(([angles[0]], angles[0] + np.cumsum(diff)))
+
 
 def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p, cost_history):
     fig = plt.figure(figsize=(20, 25))
 
     ax1 = plt.subplot2grid((5, 6), (0, 0), rowspan=5, colspan=4)
     ax1.plot([state[0] for state in state_history], [state[1] for state in state_history], 'b-', label='UAV Trajectory')
-    ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'r.', label='Reference Points')
+    ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'k--', alpha=0.5, label='Reference Points')
     ax1.arrow(0, 0, 3 * vector_p[0,0], 3 * vector_p[1,0], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
@@ -120,9 +159,22 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     horizon_lines = LineCollection([], colors='blue', alpha=0.3)
     main_ax.add_collection(horizon_lines)
     
-    current_predicted_point, = main_ax.plot([], [], 'bo', markersize=8, label='Predicted Position')
-    actual_point, = main_ax.plot([], [], 'ro', markersize=10, label='Actual Position')
     actual_trajectory, = main_ax.plot([], [], 'r-', linewidth=2, alpha=0.7, label='Actual Trajectory')
+    
+    # Create airplane polygon from CSV file
+    airplane_coords = create_airplane_polygon('airplane.csv', scale_factor=1.0)
+    airplane = Polygon(airplane_coords, closed=True, fc='black', ec='black', lw=1)
+    main_ax.add_patch(airplane)
+    
+    # Apply initial rotation and translation
+    initial_state = plane_states[0]
+    initial_x, initial_y, initial_yaw = initial_state[0], initial_state[1], initial_state[4]
+    initial_transform = Affine2D().rotate(-initial_yaw + np.pi).translate(initial_x, initial_y)
+    airplane.set_transform(initial_transform + main_ax.transData)
+    
+    # Convert regulated yaw angles to continuous angles
+    yaw_angles = [state[4] for state in plane_states]
+    continuous_yaw = accumulate_angle(yaw_angles)
     
     all_x = np.concatenate([h[:, 0] for h in horizons] + [[s[0] for s in plane_states]])
     all_y = np.concatenate([h[:, 1] for h in horizons] + [[s[1] for s in plane_states]])
@@ -174,13 +226,12 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
 
     def init():
         horizon_lines.set_segments([])
-        current_predicted_point.set_data([], [])
-        actual_point.set_data([], [])
         actual_trajectory.set_data([], [])
         time_text.set_text('')
+        # No need to reset airplane position here, as it's set correctly in the initial setup
         for line in velocity_lines + input_lines + [yaw_line, theta_line, cost_line]:
             line.set_data([], [])
-        return [horizon_lines, current_predicted_point, actual_point, actual_trajectory, time_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
+        return [horizon_lines, airplane, actual_trajectory, time_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
 
     def update(frame):
         current_time = frame * sim_dt
@@ -190,9 +241,14 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
         segments = np.array([horizon[i:i+2, :2] for i in range(min(N_horizon-1, len(horizon)-1))])
         horizon_lines.set_segments(segments)
         
-        current_predicted_point.set_data(horizon[0, 0], horizon[0, 1])
+        # Update airplane position and rotation
+        x, y = actual_state[0], actual_state[1]
+        yaw = continuous_yaw[frame]  # Use continuous yaw angle
         
-        actual_point.set_data(actual_state[0], actual_state[1])
+        # Rotate and translate the airplane, subtracting pi/2 from the yaw
+        transform = Affine2D().rotate(-yaw + np.pi).translate(x, y)
+        airplane.set_transform(transform + main_ax.transData)
+        
         actual_trajectory.set_data([state[0] for state in plane_states[:frame+1]],
                                    [state[1] for state in plane_states[:frame+1]])
         
@@ -216,7 +272,7 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
             ax.relim()
             ax.autoscale_view()
         
-        return [horizon_lines, current_predicted_point, actual_point, actual_trajectory, time_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
+        return [horizon_lines, airplane, actual_trajectory, time_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
 
     total_frames = len(horizons)
     anim = AnimationFunc(fig, update, frames=total_frames, init_func=init, blit=False, interval=interval)

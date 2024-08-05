@@ -14,8 +14,6 @@ c_generated_code/
 # Ignore acados_ocp.json
 *.json
 
-# Ignore csv files
-*.csv
 
 # Ignore gif files
 *.gif

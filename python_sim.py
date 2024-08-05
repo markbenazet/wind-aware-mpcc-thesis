@@ -4,8 +4,6 @@ import utils as u
 
 def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=30, cost_threshold=1e-3):
     optimal_x = np.tile(x0, (N_horizon, 1))
-    optimal_theta = path.project_to_path(x0[0], x0[1])
-    optimal_x[:, 5] = optimal_theta
     optimal_u = np.zeros((N_horizon, 4))
     prev_cost = float('inf')
     optimal_x_history = []
