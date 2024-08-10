@@ -156,12 +156,12 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]
     
     if path_points is not None:
-        main_ax.plot(path_points[:, 0], path_points[:, 1], 'k--', alpha=0.5, label='Reference Path')
+        main_ax.plot(path_points[:, 0], path_points[:, 1], 'k--', alpha=0.5)
     
     horizon_lines = LineCollection([], colors='green', alpha=1.0, zorder=5)
     main_ax.add_collection(horizon_lines)
     
-    actual_trajectory, = main_ax.plot([], [], 'r-', linewidth=2, alpha=0.7, label='Actual Trajectory', zorder=10)
+    actual_trajectory, = main_ax.plot([], [], 'r-', linewidth=2, alpha=0.7, zorder=10)
     
     # Create airplane polygon from CSV file
     airplane_coords = create_airplane_polygon('airplane.csv', scale_factor=1.0)
@@ -237,7 +237,6 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     main_ax.set_xlabel('X position')
     main_ax.set_ylabel('Y position')
     main_ax.set_title('Evolution of Predicted Horizons and Actual Trajectory')
-    main_ax.legend()
     
     time_text = main_ax.text(0.02, 0.95, '', transform=main_ax.transAxes)
     

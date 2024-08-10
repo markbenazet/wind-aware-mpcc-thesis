@@ -77,7 +77,7 @@ class Path:
         else:
             return self.spline_phi_func(theta/self.total_length)
     
-    def project_to_path(self, x, y):
+    def project_to_path(self, x, y, yaw, dt, velocity_x, velocity_y, params, initial=True):
         x, y = float(x), float(y)
 
         def distance(t):
@@ -87,4 +87,5 @@ class Path:
         result = minimize_scalar(distance, bounds=(0, 1), method='bounded', options={'disp': False})
         
         theta = result.x * self.total_length
+
         return theta

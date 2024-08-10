@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils as u
 
-def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=30, cost_threshold=1e-3):
+def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=60, cost_threshold=1e-3):
     optimal_x = np.tile(x0, (N_horizon, 1))
     optimal_u = np.zeros((N_horizon, 4))
     prev_cost = float('inf')

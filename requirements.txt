@@ -1,5 +1,6 @@
 acados_template
-casadi
-numpy
-scipy
-matplotlib
+casadi==3.6.5
+matplotlib==3.8.3
+numpy==1.26.4
+scipy==1.8.0
+
