@@ -14,7 +14,7 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 4.0
-    x0 = np.array([0.0, 240.0, 20.0, 0.0, np.pi, 0.0])
+    x0 = np.array([0.0, 300.0, 20.0, 0.0, np.pi, 0.0])
     params = np.array([[-10.0],[-10.0]])
     x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True)
 

@@ -33,9 +33,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     B_v_x = ocp.model.x[2]
     B_v_y = ocp.model.x[3]
     Theta = ocp.model.x[5]
-    
-    # Calculate airspeed
-    airspeed = cs.sqrt(B_v_x**2 + B_v_y**2)
+
 
     Airspeed = cs.sqrt(B_v_x**2 + B_v_y**2)
     Desired_Airspeed = 20.0
@@ -47,9 +45,6 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     eC = cs.sin(phi_ref) * (I_x-x_ref) - cs.cos(phi_ref) * (I_y-y_ref)
     eL = -cs.cos(phi_ref) * (I_x - x_ref) - cs.sin(phi_ref) * (I_y - y_ref)
     e_airspeed = (Airspeed - Desired_Airspeed)**2
-
-    V_desired = 20.0
-    V_min, V_max = 18.0, 22.0
 
     # Cost function
     c_eC = eC * Q_cont * eC
@@ -65,41 +60,9 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
     # State constraints
-    ocp.constraints.lbx = np.array([0.0, 0.0])
-    ocp.constraints.ubx = np.array([0.0, path.extended_length])
-    ocp.constraints.idxbx = np.array([3, 5])  # y velocity and theta
-    ocp.constraints.lbx_0 = np.concatenate([ocp.constraints.lbx, ocp.constraints.lbx])
-    ocp.constraints.ubx_0 = np.concatenate([ocp.constraints.ubx, ocp.constraints.ubx])
-    ocp.constraints.idxbx_0 = np.concatenate([ocp.constraints.idxbx, ocp.constraints.idxbx + 6])
-
-    # Nonlinear constraints (including airspeed)
-    ocp.model.con_h_expr = airspeed
-    ocp.model.con_h_expr_0 = airspeed
-
-    # Set the bounds for the hard constraint
-    ocp.constraints.lh = np.array([V_min])
-    ocp.constraints.uh = np.array([V_max])
-    ocp.constraints.lh_0 = ocp.constraints.lh
-    ocp.constraints.uh_0 = ocp.constraints.uh
-
-    # Add soft constraints on desired airspeed
-    ocp.constraints.lsh = np.array([V_desired - V_min])  # Slack for lower bound
-    ocp.constraints.ush = np.array([V_max - V_desired])  # Slack for upper bound
-    ocp.constraints.idxsh = np.array([0])  # Apply slack to the airspeed constraint
-    ocp.constraints.lsh_0 = ocp.constraints.lsh
-    ocp.constraints.ush_0 = ocp.constraints.ush
-    ocp.constraints.idxsh_0 = ocp.constraints.idxsh
-
-    # Penalties for soft constraints
-    slack_penalty = 1000.0
-    ocp.cost.Zl = np.array([slack_penalty])
-    ocp.cost.Zu = np.array([slack_penalty])
-    ocp.cost.zl = np.array([slack_penalty])
-    ocp.cost.zu = np.array([slack_penalty])
-    ocp.cost.Zl_0 = ocp.cost.Zl
-    ocp.cost.Zu_0 = ocp.cost.Zu
-    ocp.cost.zl_0 = ocp.cost.zl
-    ocp.cost.zu_0 = ocp.cost.zu
+    ocp.constraints.lbx = np.array([15.0, 0.0, 0.0])
+    ocp.constraints.ubx = np.array([25.0, 0.0, path.extended_length])
+    ocp.constraints.idxbx = np.array([2, 3, 5])  # y velocity and theta
 
     ocp.constraints.x0 = x0
 
@@ -110,7 +73,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.regularize_method = 'PROJECT'
-    ocp.solver_options.nlp_solver_max_iter = 500
+    ocp.solver_options.nlp_solver_max_iter = 100
     ocp.solver_options.tol = 1e-4
 
     if use_RTI:
