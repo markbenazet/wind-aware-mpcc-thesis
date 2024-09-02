@@ -24,7 +24,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     mpc_dt = Tf / N_horizon
 
     # Increase number of parameters to include cost weights
-    ocp.parameter_values = np.zeros((2,1))
+    ocp.parameter_values = np.zeros((4,1))
     ocp.cost.cost_type = 'EXTERNAL'
 
     # States

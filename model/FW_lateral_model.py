@@ -14,7 +14,9 @@ class FixedWingLateralModel:
         B_v_y = cs.MX.sym('B_v_y')  # velocity_y
         I_yaw = cs.MX.sym('I_yaw')  # yaw angle
         Theta = cs.MX.sym('Theta')
-        states = cs.vertcat(I_x, I_y, B_v_x, B_v_y, I_yaw, Theta)
+        ay = cs.MX.sym('ay')        # actual y acceleration
+        ay_dot = cs.MX.sym('ay_dot')  # rate of change of y acceleration
+        states = cs.vertcat(I_x, I_y, B_v_x, B_v_y, I_yaw, Theta, ay, ay_dot)
 
         # Input variables
         B_a_x = cs.MX.sym('B_a_x')      # acceleration x
@@ -24,23 +26,25 @@ class FixedWingLateralModel:
         controls = cs.vertcat(B_a_x, B_a_y, I_yaw_rate, v_k)
 
 
-        # Parameteres
-        p = cs.MX.sym('p', 2)
+        # Parameters
+        p = cs.MX.sym('p', 4)
         w = p[0:2]
-        w_x = w[0]
-        w_y = w[1]
+        w_x, w_y = w[0], w[1]
+        wn, zeta = p[2], p[3]  # natural frequency and damping ratio for ay dynamics
 
         # Define the dynamics equations
-        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y # derivative of north position
-        dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_x # derivative of east position
-        dv_x_dt = B_a_x + B_v_y*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in x
-        dv_y_dt = B_a_y - B_v_x*I_yaw_rate #(self.gravity * cs.tan(I_roll) / a_v) # derivative of velocity in y
-        dyaw_dt = I_yaw_rate #self.gravity * cs.tan(I_roll) / a_v  # derivative of yaw angle
+        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y
+        dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_x
+        dv_x_dt = B_a_x + B_v_y*I_yaw_rate
+        dv_y_dt = ay - B_v_x*I_yaw_rate
+        dyaw_dt = I_yaw_rate
         dtheta_dt = v_k
+        day_dt = ay_dot
+        day_dot_dt = wn**2 * (B_a_y - ay) - 2*zeta*wn*ay_dot
         
 
         # Concatenate the state derivatives
-        state_derivatives = cs.vertcat(dx_dt, dy_dt, dv_x_dt, dv_y_dt, dyaw_dt, dtheta_dt)
+        state_derivatives = cs.vertcat(dx_dt, dy_dt, dv_x_dt, dv_y_dt, dyaw_dt, dtheta_dt, day_dt, day_dot_dt)
 
         # Create AcadosModel object
         model = AcadosModel()

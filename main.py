@@ -14,11 +14,12 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 4.0
-    x0 = np.array([0.0, 300.0, 20.0, 0.0, np.pi, 0.0])
-    params = np.array([[-10.0],[-10.0]])
+    x0 = np.array([0.0, 320.0, 20.0, 0.0, np.pi, 0.0, 0.0, 0.0])
+    params = np.array([[-10.0], [-10.0], [2.0], [0.9]])  # Added wn and zeta
     x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True)
 
-    ocp_solver, acados_integrator, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)
+    ocp_solver, _, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)
+    _, fast_acados_integrator, fast_mpc_dt,_ = acados_settings(model, 10*N_horizon, Tf, x0, num_laps, use_RTI=False)
     
     state_history = []
     state_history.append(x0)
@@ -40,12 +41,14 @@ def main():
         state_solver_history.append(x_opt[1])
 
         apply_control_input = u_opt[0,:]
-        new_state = acados_integrator.simulate(current_state, apply_control_input, z=None, xdot=None, p=params)
-        new_state[4] = model.np_wrap_angle(new_state[4])
         
-        state_history.append(new_state)
-        input_history.append(apply_control_input)
-        current_state = new_state
+        # Simulate dynamics for one MPC step
+        for i in range(10):
+            new_state = fast_acados_integrator.simulate(current_state, apply_control_input, z=None, xdot=None, p=params)
+            state_history.append(new_state)
+            input_history.append(apply_control_input)
+            current_state = new_state
+            i+=1
 
         optimal_x, optimal_u = interpolate_horizon(x_opt, u_opt, mpc_dt, model)
 
@@ -55,6 +58,8 @@ def main():
 
     reference_history = path.spline_points
     vector_p = params
+
+    u.plot_acceleration_tracking(state_history, input_history)
 
     u.plot_uav_trajectory_and_state(state_history, reference_history, state_solver_history, input_history, vector_p, cost_history)
     

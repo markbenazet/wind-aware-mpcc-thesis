@@ -1,5 +1,7 @@
 import numpy as np
+import casadi as cs
 import matplotlib.pyplot as plt
+from model.FW_lateral_model import FixedWingLateralModel
 import utils as u
 
 def warm_start(x0, ocp_solver, N_horizon, path, model, params, max_iter=60, cost_threshold=1e-3):

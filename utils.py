@@ -49,9 +49,9 @@ def accumulate_angle(angles):
 
 
 def plot_uav_trajectory_and_state(state_history, reference_history, solver_history, input_history, vector_p, cost_history):
-    fig = plt.figure(figsize=(20, 25))
+    fig = plt.figure(figsize=(20, 30))
 
-    ax1 = plt.subplot2grid((5, 6), (0, 0), rowspan=5, colspan=4)
+    ax1 = plt.subplot2grid((6, 6), (0, 0), rowspan=5, colspan=4)
     ax1.plot([state[0] for state in state_history], [state[1] for state in state_history], 'b-', label='UAV Trajectory')
     ax1.plot([p[0] for p in reference_history], [p[1] for p in reference_history], 'k--', alpha=0.5, label='Reference Points')
     ax1.arrow(0, 0, 3 * vector_p[0,0], 3 * vector_p[1,0], color='magenta', width=4.0, length_includes_head=True, head_width=4.0)
@@ -61,22 +61,28 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     ax1.legend()
     ax1.grid()
 
-    axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]
+    axs = [plt.subplot2grid((6, 6), (i, 4), colspan=2) for i in range(6)]
 
-    axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
-    axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
-    axs[0].set_xlabel('Time Step')
+    # Downsample state history to match input history length
+    state_history_downsampled = state_history[::10]
+
+    # Velocity plot
+    axs[0].plot([state[2] for state in state_history_downsampled], 'b', label='V_x')
+    axs[0].plot([state[3] for state in state_history_downsampled], 'g', label='V_y')
+    axs[0].set_xlabel('Time Step (Downsampled)')
     axs[0].set_ylabel('Velocity (m/s)')
     axs[0].set_title('UAV Velocity')
     axs[0].legend()
     axs[0].grid()
 
-    axs[1].plot([state[4] for state in state_history], 'g')
-    axs[1].set_xlabel('Time Step')
+    # Yaw plot
+    axs[1].plot([state[4] for state in state_history_downsampled], 'g')
+    axs[1].set_xlabel('Time Step (Downsampled)')
     axs[1].set_ylabel('Yaw (radians)')
     axs[1].set_title('UAV Yaw')
     axs[1].grid()
 
+    # Control inputs plot
     axs[2].plot([input[0] for input in input_history], 'b', label='Acceleration_x')
     axs[2].plot([input[1] for input in input_history], 'g', label='Acceleration_y')
     axs[2].plot([input[2] for input in input_history], 'r', label='Yaw_rate')
@@ -87,17 +93,33 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[2].set_title('Control Inputs')
     axs[2].grid()
 
-    axs[3].plot([state[5] for state in state_history], 'purple')
-    axs[3].set_xlabel('Time Step')
+    # Theta plot
+    axs[3].plot([state[5] for state in state_history_downsampled], 'purple')
+    axs[3].set_xlabel('Time Step (Downsampled)')
     axs[3].set_ylabel('Theta')
     axs[3].set_title('UAV Theta (Progress Along Path)')
     axs[3].grid()
 
+    # Cost plot
     axs[4].plot(cost_history, 'orange')
     axs[4].set_xlabel('Time Step')
     axs[4].set_ylabel('Cost')
     axs[4].set_title('MPC Cost')
     axs[4].grid()
+
+    # Acceleration tracking plot
+    # Calculate actual accelerations from downsampled state history
+    
+    
+    axs[5].plot([input[0] for input in input_history], 'b--', label='ax_ref')
+    axs[5].plot([input[0] for input in input_history], 'b-', label='ax_actual')
+    axs[5].plot([input[1] for input in input_history], 'g--', label='ay_ref')
+    axs[5].plot([state[6] for state in state_history], 'g-', label='ay_actual')
+    axs[5].set_xlabel('Time Step')
+    axs[5].set_ylabel('Acceleration (m/s^2)')
+    axs[5].set_title('Acceleration Tracking')
+    axs[5].legend()
+    axs[5].grid()
 
     plt.tight_layout()
 
@@ -115,7 +137,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
             closest_index = distances.index(min(distances))
             
             for vline in vlines:
-                vline.set_xdata(closest_index)
+                vline.set_xdata(closest_index // 10)  # Adjust for downsampling
                 vline.set_visible(True)
             
             fig.canvas.draw_idle()
@@ -359,3 +381,30 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     
     plt.tight_layout()
     return anim
+
+def plot_acceleration_tracking(state_history, input_history):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+    
+    # Plot x-acceleration
+    ax1.plot([input[0] for input in input_history], 'b--', label='ax_ref')
+    ax1.plot([input[0] for input in input_history], 'b-', label='ax_actual')
+    ax1.set_xlabel('Time (s)')
+    ax1.set_ylabel('Acceleration X (m/s^2)')
+    ax1.set_title('X-Acceleration Tracking')
+    ax1.legend()
+    ax1.grid(True)
+
+    # Plot y-acceleration
+    ax2.plot([input[1] for input in input_history], 'g--', label='ay_ref')
+    ax2.plot([state[6] for state in state_history], 'g-', label='ay_actual')
+    ax2.set_xlabel('Time (s)')
+    ax2.set_ylabel('Acceleration Y (m/s^2)')
+    ax2.set_title('Y-Acceleration Tracking')
+    ax2.legend()
+    ax2.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+    return fig
