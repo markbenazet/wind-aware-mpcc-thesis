@@ -14,8 +14,8 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 4.0
-    x0 = np.array([0.0, 320.0, 20.0, 0.0, np.pi, 0.0, 0.0, 0.0])
-    params = np.array([[-10.0], [-10.0], [2.0], [0.9]])  # Added wn and zeta
+    x0 = np.array([0.0, 320.0, 20.0, 0.0, np.pi, 0.0, 0.0, 0.0, 0.0])
+    params = np.array([[-10.0], [-10.0], [2.0], [1.0], [0.1]]) 
     x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True)
 
     ocp_solver, _, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)

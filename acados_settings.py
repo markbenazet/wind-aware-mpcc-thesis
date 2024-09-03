@@ -24,7 +24,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     mpc_dt = Tf / N_horizon
 
     # Increase number of parameters to include cost weights
-    ocp.parameter_values = np.zeros((4,1))
+    ocp.parameter_values = np.zeros((5,1))
     ocp.cost.cost_type = 'EXTERNAL'
 
     # States
@@ -62,7 +62,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     # State constraints
     ocp.constraints.lbx = np.array([15.0, 0.0, 0.0])
     ocp.constraints.ubx = np.array([25.0, 0.0, path.extended_length])
-    ocp.constraints.idxbx = np.array([2, 3, 5])  # y velocity and theta
+    ocp.constraints.idxbx = np.array([2, 3, 5 ])  # y velocity and theta
 
     ocp.constraints.x0 = x0
 

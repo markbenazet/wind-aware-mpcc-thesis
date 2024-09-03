@@ -112,7 +112,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     
     
     axs[5].plot([input[0] for input in input_history], 'b--', label='ax_ref')
-    axs[5].plot([input[0] for input in input_history], 'b-', label='ax_actual')
+    axs[5].plot([state[8] for state in state_history], 'b-', label='ax_actual')
     axs[5].plot([input[1] for input in input_history], 'g--', label='ay_ref')
     axs[5].plot([state[6] for state in state_history], 'g-', label='ay_actual')
     axs[5].set_xlabel('Time Step')
@@ -388,7 +388,7 @@ def plot_acceleration_tracking(state_history, input_history):
     
     # Plot x-acceleration
     ax1.plot([input[0] for input in input_history], 'b--', label='ax_ref')
-    ax1.plot([input[0] for input in input_history], 'b-', label='ax_actual')
+    ax1.plot([state[8] for state in state_history], 'b-', label='ax_actual')
     ax1.set_xlabel('Time (s)')
     ax1.set_ylabel('Acceleration X (m/s^2)')
     ax1.set_title('X-Acceleration Tracking')
