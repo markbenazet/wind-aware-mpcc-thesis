@@ -9,6 +9,7 @@ from matplotlib.patches import Polygon
 from matplotlib.widgets import Cursor
 from matplotlib.quiver import Quiver
 import matplotlib.colors as colors
+import math
 import pandas as pd
 import matplotlib.patches as patches
 
@@ -410,7 +411,7 @@ def plot_acceleration_tracking(state_history, input_history):
 
     return fig
 
-def plot_trajectories():
+def plot_trajectories(convergence_threshold=0.0, quadrant=None):
     # Load the data
     df = pd.read_csv('grid_simulation_results/state_histories.csv')
 
@@ -420,15 +421,30 @@ def plot_trajectories():
     # Counter for plotted arrows
     arrow_count = 0
 
-    # Expected points
-    expected_points = [
-        (-20, -20), (-20, 0), (-20, 20),
-        (0, -20), (0, 20),
-        (20, -20), (20, 0), (20, 20)
-    ]
+    # Dynamically determine the grid points
+    start_x_values = df['start_x'].unique()
+    start_y_values = df['start_y'].unique()
+    grid_points = [(x, y) for x in start_x_values for y in start_y_values if not (x == 0 and y == 0)]
+
+    # Function to check if a point is in the specified quadrant
+    def in_quadrant(x, y, quad):
+        if quad == 'top_left':
+            return x <= 0 and y >= 0
+        elif quad == 'top_right':
+            return x > 0 and y > 0
+        elif quad == 'bottom_left':
+            return x < 0 and y < 0
+        elif quad == 'bottom_right':
+            return x >= 0 and y <= 0
+        else:
+            return True  # If no quadrant specified, include all points
 
     # Plot each trajectory
-    for x_start, y_start in expected_points:
+    for x_start, y_start in grid_points:
+        # Check if the point is in the specified quadrant
+        if not in_quadrant(x_start, y_start, quadrant):
+            continue
+
         # Find the corresponding row in the dataframe
         row = df[(df['start_x'] == x_start) & (df['start_y'] == y_start)]
         
@@ -437,6 +453,11 @@ def plot_trajectories():
             continue
 
         row = row.iloc[0]  # Get the first (and should be only) row
+
+        # Check if the trajectory converged
+        final_mean_square_cost = row[[col for col in df.columns if 'mean_square_cost' in col]].iloc[-1]
+        if final_mean_square_cost <= convergence_threshold:
+            continue  # Skip converged trajectories
         
         # Extract x and y coordinates for this trajectory
         x_coords = [row[col] for col in df.columns if 'step' in col and col.endswith('_x')]
@@ -447,7 +468,7 @@ def plot_trajectories():
 
         # Plot an arrow for the initial heading
         yaw_angle = row['step_0_yaw']
-        xy_angle = (np.pi/2 - yaw_angle) % (2 * np.pi)  # Corrected conversion
+        xy_angle = transform_yaw_to_xy(yaw_angle)
         
         dx = np.cos(xy_angle) * 10  # Scale the arrow length
         dy = np.sin(xy_angle) * 10
@@ -455,11 +476,14 @@ def plot_trajectories():
         
         arrow_count += 1
         
-        print(f"Point ({x_start}, {y_start}): yaw: {yaw_angle:.2f}, xy_angle: {xy_angle:.2f}")
+        print(f"Non-converging point ({x_start}, {y_start}): yaw: {yaw_angle:.2f}, xy_angle: {xy_angle:.2f}, final mean square cost: {final_mean_square_cost:.6f}")
 
-    # Plot the starting positions (excluding only 0,0)
-    start_x = [p[0] for p in expected_points]
-    start_y = [p[1] for p in expected_points]
+    # Plot the starting positions of non-converging trajectories
+    non_converging_points = [(row['start_x'], row['start_y']) for _, row in df.iterrows() 
+                             if (row[[col for col in df.columns if 'mean_square_cost' in col]].iloc[-1] > convergence_threshold) and
+                             in_quadrant(row['start_x'], row['start_y'], quadrant)]
+    start_x = [p[0] for p in non_converging_points]
+    start_y = [p[1] for p in non_converging_points]
     plt.scatter(start_x, start_y, color='red', s=10)
 
     # Plot the circular path (assuming it's centered at (0,0) with radius 200)
@@ -469,17 +493,30 @@ def plot_trajectories():
     # Mark the origin (0,0) differently
     plt.plot(0, 0, 'go', markersize=10)  # Green dot for origin
 
-    plt.title('UAV Trajectories from Different Starting Positions (Excluding Origin)')
+    # Set plot title based on filtering
+    title = 'Non-Converging UAV Trajectories'
+    if quadrant:
+        title += f' in {quadrant.replace("_", " ").title()} Quadrant'
+    plt.title(title)
+
     plt.xlabel('X Position')
     plt.ylabel('Y Position')
     plt.grid(True)
     plt.axis('equal')
     plt.show()
-    plt.savefig('grid_simulation_results/trajectories_no_origin.png')
+    plt.savefig(f'grid_simulation_results/trajectories_{quadrant if quadrant else "all"}.png')
     plt.close()
 
-    print(f"Total points plotted: {len(expected_points)}")
+    print(f"Total non-converging points plotted: {len(non_converging_points)}")
     print(f"Total arrows plotted: {arrow_count}")
 
+def transform_yaw_to_xy(yaw_angle):
+    # 1. Negate the angle to change direction (CW to CCW)
+    # 2. Add π/2 to shift the starting point
+    # 3. Use modulo to ensure the result is in [0, 2π)
+    xy_angle = (-yaw_angle + np.pi/2) % (2 * np.pi)
+    
+    return xy_angle
+
 if __name__ == '__main__':
-    plot_trajectories()
+    plot_trajectories(quadrant=None)
