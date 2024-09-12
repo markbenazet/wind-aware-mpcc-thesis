@@ -73,7 +73,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     ocp.solver_options.hessian_approx = 'EXACT'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.regularize_method = 'PROJECT'
-    ocp.solver_options.nlp_solver_max_iter = 100
+    ocp.solver_options.nlp_solver_max_iter = 200
     ocp.solver_options.tol = 1e-4
 
     if use_RTI:

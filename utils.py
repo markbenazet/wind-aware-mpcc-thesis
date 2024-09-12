@@ -9,6 +9,7 @@ from matplotlib.patches import Polygon
 from matplotlib.widgets import Cursor
 from matplotlib.quiver import Quiver
 import matplotlib.colors as colors
+import pandas as pd
 import matplotlib.patches as patches
 
 def load_airplane_coords(csv_file):
@@ -408,3 +409,77 @@ def plot_acceleration_tracking(state_history, input_history):
     plt.show()
 
     return fig
+
+def plot_trajectories():
+    # Load the data
+    df = pd.read_csv('grid_simulation_results/state_histories.csv')
+
+    # Create a new figure
+    plt.figure(figsize=(15, 15))
+
+    # Counter for plotted arrows
+    arrow_count = 0
+
+    # Expected points
+    expected_points = [
+        (-20, -20), (-20, 0), (-20, 20),
+        (0, -20), (0, 20),
+        (20, -20), (20, 0), (20, 20)
+    ]
+
+    # Plot each trajectory
+    for x_start, y_start in expected_points:
+        # Find the corresponding row in the dataframe
+        row = df[(df['start_x'] == x_start) & (df['start_y'] == y_start)]
+        
+        if row.empty:
+            print(f"Warning: No data found for point ({x_start}, {y_start})")
+            continue
+
+        row = row.iloc[0]  # Get the first (and should be only) row
+        
+        # Extract x and y coordinates for this trajectory
+        x_coords = [row[col] for col in df.columns if 'step' in col and col.endswith('_x')]
+        y_coords = [row[col] for col in df.columns if 'step' in col and col.endswith('_y')]
+        
+        # Plot the trajectory
+        plt.plot(x_coords, y_coords, alpha=0.5)
+
+        # Plot an arrow for the initial heading
+        yaw_angle = row['step_0_yaw']
+        xy_angle = (np.pi/2 - yaw_angle) % (2 * np.pi)  # Corrected conversion
+        
+        dx = np.cos(xy_angle) * 10  # Scale the arrow length
+        dy = np.sin(xy_angle) * 10
+        plt.arrow(x_start, y_start, dx, dy, head_width=5, head_length=5, fc='r', ec='r')
+        
+        arrow_count += 1
+        
+        print(f"Point ({x_start}, {y_start}): yaw: {yaw_angle:.2f}, xy_angle: {xy_angle:.2f}")
+
+    # Plot the starting positions (excluding only 0,0)
+    start_x = [p[0] for p in expected_points]
+    start_y = [p[1] for p in expected_points]
+    plt.scatter(start_x, start_y, color='red', s=10)
+
+    # Plot the circular path (assuming it's centered at (0,0) with radius 200)
+    circle = plt.Circle((0, 0), 200, color='g', fill=False)
+    plt.gca().add_artist(circle)
+
+    # Mark the origin (0,0) differently
+    plt.plot(0, 0, 'go', markersize=10)  # Green dot for origin
+
+    plt.title('UAV Trajectories from Different Starting Positions (Excluding Origin)')
+    plt.xlabel('X Position')
+    plt.ylabel('Y Position')
+    plt.grid(True)
+    plt.axis('equal')
+    plt.show()
+    plt.savefig('grid_simulation_results/trajectories_no_origin.png')
+    plt.close()
+
+    print(f"Total points plotted: {len(expected_points)}")
+    print(f"Total arrows plotted: {arrow_count}")
+
+if __name__ == '__main__':
+    plot_trajectories()
