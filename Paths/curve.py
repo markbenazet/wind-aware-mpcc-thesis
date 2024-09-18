@@ -3,7 +3,7 @@ from scipy.interpolate import splprep, splev, BSpline
 from scipy.integrate import cumtrapz
 from scipy.optimize import minimize_scalar
 import casadi as ca
-
+import matplotlib.pyplot as plt
 class Path:
     def __init__(self, path_points, num_laps):
         self.path_points = path_points
@@ -33,17 +33,20 @@ class Path:
         
         # Calculate tangent angles
         phi_values = np.arctan2(dy_du, dx_du)
-        
+
+        # Unwrap the angles to remove 2π jumps
+        phi_values_unwrapped = np.unwrap(phi_values)
+
         # Calculate path length
         ds = np.sqrt(dx_du**2 + dy_du**2)
         s = cumtrapz(ds, u_fine, initial=0)
         total_length = s[-1]
-        
+
         # Normalize s to [0, 1]
         s_normalized = s / total_length
-        
-        # Fit B-spline to phi values
-        tck_phi, _ = splprep([s_normalized, phi_values], s=0, k=3)
+
+        # Fit B-spline to unwrapped phi values
+        tck_phi, _ = splprep([s_normalized, phi_values_unwrapped], s=0, k=3)
         
         # Create CasADi functions for evaluation
         self.spline_x_func = ca.interpolant('spline_x', 'bspline', [u], tck[1][0])
@@ -89,3 +92,26 @@ class Path:
         theta = result.x * self.total_length
 
         return theta
+    
+    def plot_tangent_angles(self):
+        thetas = np.linspace(0, self.total_length, 1000)
+        angles = [self.get_tangent_angle(t) for t in thetas]
+        
+        plt.figure(figsize=(12, 6))
+        plt.plot(thetas, angles)
+        plt.title('Tangent Angles Along Path')
+        plt.xlabel('Path Length')
+        plt.ylabel('Angle (radians)')
+        plt.grid(True)
+        plt.show()
+
+        # Plot rate of change
+        angle_rates = np.diff(angles) / np.diff(thetas)
+        plt.figure(figsize=(12, 6))
+        plt.plot(thetas[1:], angle_rates)
+        plt.title('Rate of Change of Tangent Angles')
+        plt.xlabel('Path Length')
+        plt.ylabel('Rate of Change (radians/meter)')
+        plt.grid(True)
+        plt.show()
+    
