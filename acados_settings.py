@@ -17,7 +17,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     R_1 = 1.0
     R_2 = 1.0
     R_3 = 1.0
-    R_4 = 5.0
+    R_4 = 10.0
     R_airspeed = 5.0
 
     ocp.dims.N = N_horizon
@@ -55,13 +55,13 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     c_airspeed = R_airspeed * e_airspeed
     
     ocp.model.cost_expr_ext_cost = c_vK + c_eC + c_aX + c_aY + c_yR + c_eL + c_airspeed
-    ocp.constraints.lbu = np.array([-0.4, -20.0, -np.pi/3, 10.0])
-    ocp.constraints.ubu = np.array([0.4, 20.0, np.pi/3, 50.0])
+    ocp.constraints.lbu = np.array([-0.4, -10.0, -np.pi/3, 0.0])
+    ocp.constraints.ubu = np.array([0.4, 10.0, np.pi/3, 50.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
     # State constraints
-    ocp.constraints.lbx = np.array([-5.0, -0.1, 0.0])
-    ocp.constraints.ubx = np.array([25.0, 0.1, path.extended_length])
+    ocp.constraints.lbx = np.array([17.0, -0.1, 0.0])
+    ocp.constraints.ubx = np.array([23.0, 0.1, path.extended_length])
     ocp.constraints.idxbx = np.array([2, 3, 5 ])  # velocity and theta
 
     ocp.constraints.x0 = x0
