@@ -102,7 +102,7 @@ def main():
         for y_start in y_range:
             initial_heading = calculate_initial_heading(x_start, y_start, 0.0, 0.0, 200.0)
             x0 = np.array([x_start, y_start, 20.0, 0.0, initial_heading, 0.0, 0.0, 0.0, 0.0])
-            x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True)
+            x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True) + 50.0
 
             state_history, input_history, cost_history = run_simulation(x0, params, model, path, N_horizon, Tf, num_laps,  max_simulation_time)
             
