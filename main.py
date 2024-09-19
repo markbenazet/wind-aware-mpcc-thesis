@@ -14,7 +14,7 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 8.0
-    x0 = np.array([0.0, 300.0, 20.0, 0.0, -np.pi, 0.0, 0.0, 0.0, 0.0])
+    x0 = np.array([0.0, 150.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     params = np.array([[-14.0], [-14.0], [2.0], [1.0], [0.1]]) 
     x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True) + 50.0
 
@@ -25,7 +25,9 @@ def main():
     state_history.append(x0)
     input_history = []
     horizon_history = []
+    sim_input_history = []
     state_solver_history = []
+    sim_state_history = []
     cost_history = []
     state_solver_history.append(x0[0:2])
     simulation_time = 0
@@ -48,6 +50,9 @@ def main():
             state_history.append(new_state)
             input_history.append(apply_control_input)
             current_state = new_state
+            if i == 9:
+                sim_state_history.append(new_state)
+                sim_input_history.append(apply_control_input)
             i+=1
 
         optimal_x, optimal_u = interpolate_horizon(x_opt, u_opt, mpc_dt, model)
@@ -57,14 +62,14 @@ def main():
         simulation_time += mpc_dt
 
     reference_history = path.spline_points
-    vector_p = params
+    vector_p = params[0:2]
 
     u.plot_acceleration_tracking(state_history, input_history)
 
     u.plot_uav_trajectory_and_state(state_history, reference_history, state_solver_history, input_history, vector_p, cost_history)
     
-    anim = u.animate_horizons(horizon_history, state_history, input_history, cost_history, 
-                        N_horizon, max_simulation_time, Tf, mpc_dt, params, 
+    anim = u.animate_horizons(horizon_history, sim_state_history, sim_input_history, cost_history, 
+                        N_horizon, max_simulation_time, Tf, mpc_dt, vector_p, 
                         path_points=path.spline_points, interval=100, save_animation=True)
     plt.show()
 
