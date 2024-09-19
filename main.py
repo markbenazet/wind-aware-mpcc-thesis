@@ -13,9 +13,9 @@ def main():
     num_laps = 3
     path = Path(path_points, num_laps)
     N_horizon = 40
-    Tf = 4.0
-    x0 = np.array([0.0, 320.0, 20.0, 0.0, np.pi, 0.0, 0.0, 0.0, 0.0])
-    params = np.array([[-10.0], [-10.0], [2.0], [1.0], [0.1]]) 
+    Tf = 8.0
+    x0 = np.array([0.0, 300.0, 20.0, 0.0, np.pi, 0.0, 0.0, 0.0, 0.0])
+    params = np.array([[-14.0], [-14.0], [2.0], [1.0], [0.1]]) 
     x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True)
 
     ocp_solver, _, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)
@@ -29,7 +29,7 @@ def main():
     cost_history = []
     state_solver_history.append(x0[0:2])
     simulation_time = 0
-    max_simulation_time = 60.0
+    max_simulation_time = 120.0
 
     optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
     current_state = x0.copy()
@@ -63,10 +63,10 @@ def main():
 
     u.plot_uav_trajectory_and_state(state_history, reference_history, state_solver_history, input_history, vector_p, cost_history)
     
-    # anim = u.animate_horizons(horizon_history, state_history, input_history, cost_history, 
-                        # N_horizon, max_simulation_time, Tf, mpc_dt, params, 
-                        # path_points=path.spline_points, interval=100, save_animation=True)
-    # plt.show()
+    anim = u.animate_horizons(horizon_history, state_history, input_history, cost_history, 
+                        N_horizon, max_simulation_time, Tf, mpc_dt, params, 
+                        path_points=path.spline_points, interval=100, save_animation=True)
+    plt.show()
 
 if __name__ == "__main__":
     main()

@@ -7,7 +7,7 @@ class FixedWingLateralModel:
         self.model_name = model_name
 
     def fixed_wing_lateral_model(self) -> AcadosModel:
-        # State variables (assuming no wind)
+        # State variables 
         I_x = cs.MX.sym('I_x')      # north position
         I_y = cs.MX.sym('I_y')      # east position
         B_v_x = cs.MX.sym('B_v_x')  # velocity_x
