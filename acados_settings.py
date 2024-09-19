@@ -55,8 +55,8 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     c_airspeed = R_airspeed * e_airspeed
     
     ocp.model.cost_expr_ext_cost = c_vK + c_eC + c_aX + c_aY + c_yR + c_eL + c_airspeed
-    ocp.constraints.lbu = np.array([-0.4, -10.0, -np.pi/3, 0.0])
-    ocp.constraints.ubu = np.array([0.4, 10.0, np.pi/3, 50.0])
+    ocp.constraints.lbu = np.array([-0.4, -20.0, -np.pi/3, 0.0])
+    ocp.constraints.ubu = np.array([0.4, 20.0, np.pi/3, 50.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
     # State constraints
