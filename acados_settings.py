@@ -17,7 +17,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     R_1 = 1.0
     R_2 = 1.0
     R_3 = 1.0
-    R_4 = 5.0
+    R_4 = 15.0
     R_airspeed = 5.0
 
     ocp.dims.N = N_horizon

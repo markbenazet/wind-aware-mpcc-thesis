@@ -82,7 +82,7 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 8.0
-    params = np.array([[0.0], [25.0], [2.0], [1.0], [0.1]])
+    params = np.array([[14.0], [14.0], [2.0], [1.0], [0.1]])
     max_simulation_time = 60.0
 
     # Define the grid
