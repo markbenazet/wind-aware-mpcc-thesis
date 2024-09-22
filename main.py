@@ -50,9 +50,6 @@ def main():
             state_history.append(new_state)
             input_history.append(apply_control_input)
             current_state = new_state
-            if i == 9:
-                sim_state_history.append(new_state)
-                sim_input_history.append(apply_control_input)
             i+=1
 
         optimal_x, optimal_u = interpolate_horizon(x_opt, u_opt, mpc_dt, model)
@@ -64,14 +61,17 @@ def main():
     reference_history = path.spline_points
     vector_p = params[0:2]
 
-    u.plot_acceleration_tracking(state_history, input_history)
-
-    u.plot_uav_trajectory_and_state(state_history, reference_history, state_solver_history, input_history, vector_p, cost_history)
+    if state_history and input_history:
+        u.plot_acceleration_tracking(state_history, input_history)
+        u.plot_uav_trajectory_and_state(state_history, reference_history, horizon_history, input_history, vector_p, cost_history)
     
-    anim = u.animate_horizons(horizon_history, sim_state_history, sim_input_history, cost_history, 
-                        N_horizon, max_simulation_time, Tf, mpc_dt, vector_p, 
-                        path_points=path.spline_points, interval=100, save_animation=True)
-    plt.show()
+        anim = u.animate_horizons(horizon_history, state_history, input_history, cost_history, 
+                            N_horizon, max_simulation_time, Tf, mpc_dt, vector_p, 
+                            path_points=path.spline_points, interval=100, save_animation=True)
+        if anim:
+            plt.show()
+    else:
+        print("Error: No simulation data collected. Cannot create plots or animation.")
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,7 @@ from matplotlib.animation import FuncAnimation as AnimationFunc
 from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
-from matplotlib.patches import Polygon
+from matplotlib.patches import Polygon, FancyArrowPatch
 from matplotlib.widgets import Cursor
 from matplotlib.quiver import Quiver
 import matplotlib.colors as colors
@@ -185,71 +185,60 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     
     actual_trajectory, = main_ax.plot([], [], 'r-', linewidth=2, alpha=0.7, zorder=10)
     
-    # Create airplane polygon from CSV file
     airplane_coords = create_airplane_polygon('airplane.csv', scale_factor=1.0)
     airplane = Polygon(airplane_coords, closed=True, fc='black', ec='black', lw=1, zorder=1000)
     main_ax.add_patch(airplane)
     
-    wx, wy = params.flatten()
+    wx, wy = params.flatten()[:2]
     
-    # Set up wind field
     x_range = main_ax.get_xlim()
     y_range = main_ax.get_ylim()
-    n_arrows = 50  # Reduced number of arrows for clarity
+    n_arrows = 50
     X = np.random.uniform(x_range[0], x_range[1], n_arrows)
     Y = np.random.uniform(y_range[0], y_range[1], n_arrows)
     
-    # Adjust the scale of wind vectors
-    wind_scale = 0.01 * max(x_range[1] - x_range[0], y_range[1] - y_range[0])  # 1% of the plot size
+    wind_scale = 0.01 * max(x_range[1] - x_range[0], y_range[1] - y_range[0])
     U = np.ones(n_arrows) * wx * wind_scale
     V = np.ones(n_arrows) * wy * wind_scale
 
-    # Scale for arrow movement (can be different from visual length)
     move_scale = 0.1 * max(x_range[1] - x_range[0], y_range[1] - y_range[0])
     U_move = np.ones(n_arrows) * wx * move_scale
     V_move = np.ones(n_arrows) * wy * move_scale
 
     lifetimes = np.random.uniform(0, 1, n_arrows)
     
-    # Calculate wind speed for coloring
     speed = np.sqrt(U**2 + V**2)
     
-    # Create a color map
     cmap = plt.get_cmap('coolwarm')
     norm = colors.Normalize(vmin=0, vmax=np.max(speed))
 
-    # Create wind arrows
     wind_arrows = []
     for i in range(n_arrows):
-        arrow = patches.FancyArrowPatch((X[i], Y[i]), (X[i] + U[i], Y[i] + V[i]),
-                                        color='blue',
-                                        arrowstyle='->',
-                                        mutation_scale=10,
-                                        linewidth=0.5,
-                                        alpha=0.2,
-                                        zorder=15)
+        arrow = FancyArrowPatch((X[i], Y[i]), (X[i] + U[i], Y[i] + V[i]),
+                                color='blue',
+                                arrowstyle='->',
+                                mutation_scale=10,
+                                linewidth=0.5,
+                                alpha=0.2,
+                                zorder=15)
         wind_arrows.append(arrow)
         main_ax.add_patch(arrow)
 
-    # Calculate scalar wind magnitude
-    wind_magnitude = np.linalg.norm(params)
+    wind_magnitude = np.linalg.norm(params[:2])
     
-    # Add wind vector legend
     wind_text = main_ax.text(0.02, 0.98, f'Wind: {wind_magnitude:.2f} m/s', 
                              transform=main_ax.transAxes, verticalalignment='top')
     
-    # Apply initial rotation and translation
     initial_state = plane_states[0]
     initial_x, initial_y, initial_yaw = initial_state[0], initial_state[1], initial_state[4]
     initial_transform = Affine2D().rotate(-initial_yaw + np.pi).translate(initial_x, initial_y)
     airplane.set_transform(initial_transform + main_ax.transData)
     
-    # Convert regulated yaw angles to continuous angles
     yaw_angles = [state[4] for state in plane_states]
     continuous_yaw = accumulate_angle(yaw_angles)
     
-    all_x = np.concatenate([h[:, 0] for h in horizons] + [[s[0] for s in plane_states]])
-    all_y = np.concatenate([h[:, 1] for h in horizons] + [[s[1] for s in plane_states]])
+    all_x = np.concatenate([h[:, 0] for h in horizons] + [[s[0] for s in plane_states[::10]]])
+    all_y = np.concatenate([h[:, 1] for h in horizons] + [[s[1] for s in plane_states[::10]]])
     
     x_range = np.max(all_x) - np.min(all_x)
     y_range = np.max(all_y) - np.min(all_y)
@@ -262,7 +251,6 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     
     time_text = main_ax.text(0.02, 0.95, '', transform=main_ax.transAxes)
     
-    # Initialize subplots
     velocity_lines = [axs[0].plot([], [], label=label)[0] for label in ['V_x', 'V_y']]
     axs[0].set_xlabel('Time Step')
     axs[0].set_ylabel('Velocity (m/s)')
@@ -308,33 +296,40 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
 
     def update(frame):
         nonlocal X, Y, lifetimes
-        current_time = frame * sim_dt
-        horizon = horizons[frame]
-        actual_state = plane_states[frame]
         
-        segments = np.array([horizon[i:i+2, :2] for i in range(min(N_horizon-1, len(horizon)-1))])
-        horizon_lines.set_segments(segments)
+        horizon_frame = frame
+        state_frame = frame * 10
+        input_frame = frame
+        cost_frame = frame
         
-        # Update airplane position and rotation
-        x, y = actual_state[0], actual_state[1]
-        yaw = continuous_yaw[frame]  # Use continuous yaw angle
+        current_time = frame * horizon_time
+        
+        if horizon_frame < len(horizons):
+            horizon = horizons[horizon_frame]
+            segments = np.array([horizon[i:i+2, :2] for i in range(min(N_horizon-1, len(horizon)-1))])
+            horizon_lines.set_segments(segments)
+        
+        if state_frame < len(plane_states):
+            actual_state = plane_states[state_frame]
+            x, y = actual_state[0], actual_state[1]
+            yaw = continuous_yaw[state_frame]
+        else:
+            x, y = plane_states[-1][0], plane_states[-1][1]
+            yaw = continuous_yaw[-1]
 
-        lifetimes += 0.01  # Slower lifecycle
+        lifetimes += 0.01
         new_arrows = lifetimes > 1
-        lifetimes[new_arrows] = 0  # Reset lifetime for new arrows
+        lifetimes[new_arrows] = 0
         
-        # Update positions for new arrows and move existing arrows
-        X += U_move * 0.01  # Move arrows in the wind direction
+        X += U_move * 0.01
         Y += V_move * 0.01
         X[new_arrows] = np.random.uniform(main_ax.get_xlim()[0], main_ax.get_xlim()[1], np.sum(new_arrows))
         Y[new_arrows] = np.random.uniform(main_ax.get_ylim()[0], main_ax.get_ylim()[1], np.sum(new_arrows))
         
-        # Wrap arrows around the plot
         X = np.mod(X - main_ax.get_xlim()[0], main_ax.get_xlim()[1] - main_ax.get_xlim()[0]) + main_ax.get_xlim()[0]
         Y = np.mod(Y - main_ax.get_ylim()[0], main_ax.get_ylim()[1] - main_ax.get_ylim()[0]) + main_ax.get_ylim()[0]
         
-        # Calculate arrow visibility based on lifetimes
-        visibility = np.where(lifetimes <= 0.95, lifetimes, 0)  # Disappear at 95% of lifecycle
+        visibility = np.where(lifetimes <= 0.95, lifetimes, 0)
         
         for i, arrow in enumerate(wind_arrows):
             start = (X[i], Y[i])
@@ -344,28 +339,28 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
 
         wind_text.set_text(f'Wind: {wind_magnitude:.2f} m/s')
         
-        # Rotate and translate the airplane
         transform = Affine2D().rotate(-yaw + np.pi).translate(x, y)
         airplane.set_transform(transform + main_ax.transData)
         
-        actual_trajectory.set_data([state[0] for state in plane_states[:frame+1]],
-                                   [state[1] for state in plane_states[:frame+1]])
+        actual_trajectory.set_data([state[0] for state in plane_states[:state_frame+1:10]],
+                                   [state[1] for state in plane_states[:state_frame+1:10]])
         
         time_text.set_text(f'Time: {current_time:.2f}s / {max_simulation_time:.2f}s\n'
                            f'Horizon: {horizon_time:.2f}s')
         
-        # Update subplots
         for i, line in enumerate(velocity_lines):
-            line.set_data(range(frame+1), [state[2+i] for state in plane_states[:frame+1]])
+            line.set_data(range(0, state_frame+1, 10), [state[2+i] for state in plane_states[:state_frame+1:10]])
         
-        yaw_line.set_data(range(frame+1), [state[4] for state in plane_states[:frame+1]])
+        yaw_line.set_data(range(0, state_frame+1, 10), [state[4] for state in plane_states[:state_frame+1:10]])
         
-        for i, line in enumerate(input_lines):
-            line.set_data(range(frame+1), [input[i] for input in input_history[:frame+1]])
+        if input_frame < len(input_history):
+            for i, line in enumerate(input_lines):
+                line.set_data(range(input_frame+1), [input[i] for input in input_history[:input_frame+1]])
         
-        theta_line.set_data(range(frame+1), [state[5] for state in plane_states[:frame+1]])
+        theta_line.set_data(range(0, state_frame+1, 10), [state[5] for state in plane_states[:state_frame+1:10]])
         
-        cost_line.set_data(range(frame+1), cost_history[:frame+1])
+        if cost_frame < len(cost_history):
+            cost_line.set_data(range(cost_frame+1), cost_history[:cost_frame+1])
         
         for ax in axs:
             ax.relim()
@@ -373,7 +368,7 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
         
         return [horizon_lines, airplane, actual_trajectory, time_text] + wind_arrows + [wind_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
 
-    total_frames = len(horizons)
+    total_frames = min(len(horizons), len(input_history), len(cost_history))
     anim = AnimationFunc(fig, update, frames=total_frames, init_func=init, blit=False, interval=interval)
     
     if save_animation:
@@ -389,7 +384,7 @@ def plot_acceleration_tracking(state_history, input_history):
     # Plot x-acceleration
     ax1.plot([input[0] for input in input_history], 'b--', label='ax_ref')
     ax1.plot([state[8] for state in state_history], 'b-', label='ax_actual')
-    ax1.set_xlabel('Time (s)')
+    ax1.set_xlabel('Time (ms)')
     ax1.set_ylabel('Acceleration X (m/s^2)')
     ax1.set_title('X-Acceleration Tracking')
     ax1.legend()
@@ -398,7 +393,7 @@ def plot_acceleration_tracking(state_history, input_history):
     # Plot y-acceleration
     ax2.plot([input[1] for input in input_history], 'g--', label='ay_ref')
     ax2.plot([state[6] for state in state_history], 'g-', label='ay_actual')
-    ax2.set_xlabel('Time (s)')
+    ax2.set_xlabel('Time (ms)')
     ax2.set_ylabel('Acceleration Y (m/s^2)')
     ax2.set_title('Y-Acceleration Tracking')
     ax2.legend()
