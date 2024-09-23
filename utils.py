@@ -63,12 +63,9 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
 
     axs = [plt.subplot2grid((6, 6), (i, 4), colspan=2) for i in range(6)]
 
-    # Downsample state history to match input history length
-    state_history_downsampled = state_history[::10]
-
     # Velocity plot
-    axs[0].plot([state[2] for state in state_history_downsampled], 'b', label='V_x')
-    axs[0].plot([state[3] for state in state_history_downsampled], 'g', label='V_y')
+    axs[0].plot([state[2] for state in state_history], 'b', label='V_x')
+    axs[0].plot([state[3] for state in state_history], 'g', label='V_y')
     axs[0].set_xlabel('Time Step (Downsampled)')
     axs[0].set_ylabel('Velocity (m/s)')
     axs[0].set_title('UAV Velocity')
@@ -76,7 +73,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[0].grid()
 
     # Yaw plot
-    axs[1].plot([state[4] for state in state_history_downsampled], 'g')
+    axs[1].plot([state[4] for state in state_history], 'g')
     axs[1].set_xlabel('Time Step (Downsampled)')
     axs[1].set_ylabel('Yaw (radians)')
     axs[1].set_title('UAV Yaw')
@@ -94,7 +91,7 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[2].grid()
 
     # Theta plot
-    axs[3].plot([state[5] for state in state_history_downsampled], 'purple')
+    axs[3].plot([state[5] for state in state_history], 'purple')
     axs[3].set_xlabel('Time Step (Downsampled)')
     axs[3].set_ylabel('Theta')
     axs[3].set_title('UAV Theta (Progress Along Path)')
