@@ -176,6 +176,26 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     
     if path_points is not None:
         main_ax.plot(path_points[:, 0], path_points[:, 1], 'k--', alpha=0.5)
+        
+        # Calculate the center and radius of the circular path
+        center_x = (np.max(path_points[:, 0]) + np.min(path_points[:, 0])) / 2
+        center_y = (np.max(path_points[:, 1]) + np.min(path_points[:, 1])) / 2
+        radius = np.max(np.sqrt((path_points[:, 0] - center_x)**2 + (path_points[:, 1] - center_y)**2))
+        
+        # Set fixed limits with some padding
+        padding = radius * 0.2  # 20% padding
+        main_ax.set_xlim(center_x - radius - padding, center_x + radius + padding)
+        main_ax.set_ylim(center_y - radius - padding, center_y + radius + padding)
+    else:
+        # If no path_points provided, use the original method to set limits
+        all_x = np.concatenate([h[:, 0] for h in horizons] + [[s[0] for s in plane_states]])
+        all_y = np.concatenate([h[:, 1] for h in horizons] + [[s[1] for s in plane_states]])
+        
+        x_range = np.max(all_x) - np.min(all_x)
+        y_range = np.max(all_y) - np.min(all_y)
+        main_ax.set_xlim(np.min(all_x) - 0.2*x_range, np.max(all_x) + 0.2*x_range)
+        main_ax.set_ylim(np.min(all_y) - 0.2*y_range, np.max(all_y) + 0.2*y_range)
+
     
     horizon_lines = LineCollection([], colors='green', alpha=1.0, zorder=5)
     main_ax.add_collection(horizon_lines)
@@ -244,18 +264,6 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     # Convert regulated yaw angles to continuous angles
     yaw_angles = [state[4] for state in plane_states]
     continuous_yaw = accumulate_angle(yaw_angles)
-    
-    all_x = np.concatenate([h[:, 0] for h in horizons] + [[s[0] for s in plane_states]])
-    all_y = np.concatenate([h[:, 1] for h in horizons] + [[s[1] for s in plane_states]])
-    
-    x_range = np.max(all_x) - np.min(all_x)
-    y_range = np.max(all_y) - np.min(all_y)
-    main_ax.set_xlim(np.min(all_x) - 0.2*x_range, np.max(all_x) + 0.2*x_range)
-    main_ax.set_ylim(np.min(all_y) - 0.2*y_range, np.max(all_y) + 0.2*y_range)
-    
-    main_ax.set_xlabel('X position')
-    main_ax.set_ylabel('Y position')
-    main_ax.set_title('Evolution of Predicted Horizons and Actual Trajectory')
     
     time_text = main_ax.text(0.02, 0.95, '', transform=main_ax.transAxes)
     
