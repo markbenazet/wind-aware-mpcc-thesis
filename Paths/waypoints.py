@@ -18,7 +18,7 @@ path_points = [
 
 # Generate additional waypoints with curves
 num_waypoints = 80  # Number of additional waypoints for the circle
-radius = 200.0  # Radius of the circle
+radius = 100.0  # Radius of the circle
 circle_center_x = 0.0  # X-coordinate of the circle center
 circle_center_y = 0.0  # Y-coordinate of the circle center
 

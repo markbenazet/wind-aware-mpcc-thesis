@@ -424,27 +424,10 @@ def plot_trajectories(convergence_threshold=0.0, quadrant=None):
     # Dynamically determine the grid points
     start_x_values = df['start_x'].unique()
     start_y_values = df['start_y'].unique()
-    grid_points = [(x, y) for x in start_x_values for y in start_y_values if not (x == 0 and y == 0)]
-
-    # Function to check if a point is in the specified quadrant
-    def in_quadrant(x, y, quad):
-        if quad == 'top_left':
-            return x <= 0 and y >= 0
-        elif quad == 'top_right':
-            return x > 0 and y > 0
-        elif quad == 'bottom_left':
-            return x < 0 and y < 0
-        elif quad == 'bottom_right':
-            return x >= 0 and y <= 0
-        else:
-            return True  # If no quadrant specified, include all points
+    grid_points = [(x, y) for x in start_x_values for y in start_y_values if (x == 0 and y == 75)]
 
     # Plot each trajectory
     for x_start, y_start in grid_points:
-        # Check if the point is in the specified quadrant
-        if not in_quadrant(x_start, y_start, quadrant):
-            continue
-
         # Find the corresponding row in the dataframe
         row = df[(df['start_x'] == x_start) & (df['start_y'] == y_start)]
         
@@ -481,22 +464,20 @@ def plot_trajectories(convergence_threshold=0.0, quadrant=None):
     # Plot the starting positions of non-converging trajectories
     non_converging_points = [(row['start_x'], row['start_y']) for _, row in df.iterrows() 
                              if (row[[col for col in df.columns if 'mean_square_cost' in col]].iloc[-1] > convergence_threshold) and
-                             in_quadrant(row['start_x'], row['start_y'], quadrant)]
+                             (row['start_x'] == 0 and row['start_y'] == 75)]
     start_x = [p[0] for p in non_converging_points]
     start_y = [p[1] for p in non_converging_points]
     plt.scatter(start_x, start_y, color='red', s=10)
 
     # Plot the circular path (assuming it's centered at (0,0) with radius 200)
-    circle = plt.Circle((0, 0), 200, color='g', fill=False)
+    circle = plt.Circle((0, 0), 100, color='g', fill=False)
     plt.gca().add_artist(circle)
 
     # Mark the origin (0,0) differently
     plt.plot(0, 0, 'go', markersize=10)  # Green dot for origin
 
     # Set plot title based on filtering
-    title = 'Non-Converging UAV Trajectories'
-    if quadrant:
-        title += f' in {quadrant.replace("_", " ").title()} Quadrant'
+    title = 'Evaluation of Trajectories'
     plt.title(title)
 
     plt.xlabel('X Position')
@@ -504,7 +485,7 @@ def plot_trajectories(convergence_threshold=0.0, quadrant=None):
     plt.grid(True)
     plt.axis('equal')
     plt.show()
-    plt.savefig(f'grid_simulation_results/trajectories_{quadrant if quadrant else "all"}.png')
+    plt.savefig(f'grid_simulation_results/trajectories_0_75.png')
     plt.close()
 
     print(f"Total non-converging points plotted: {len(non_converging_points)}")
