@@ -88,7 +88,6 @@ def plot_uav_trajectory_and_state(state_history, reference_history, solver_histo
     axs[2].set_ylabel('Input Value')
     axs[2].legend()
     axs[2].set_title('Control Inputs')
-    axs[2].grid()
 
     # Theta plot
     axs[3].plot([state[5] for state in state_history], 'purple')
@@ -169,10 +168,7 @@ def plot_warm_start(optimal_history_list, reference_history, N_horizon, max_iter
     plt.show()
 
 def animate_horizons(horizons, plane_states, input_history, cost_history, N_horizon, max_simulation_time, horizon_time, sim_dt, params, path_points=None, interval=100, save_animation=False):
-    fig = plt.figure(figsize=(20, 25))
-    
-    main_ax = plt.subplot2grid((5, 6), (0, 0), rowspan=5, colspan=4)
-    axs = [plt.subplot2grid((5, 6), (i, 4), colspan=2) for i in range(5)]
+    fig, main_ax = plt.subplots(figsize=(20, 15))
     
     if path_points is not None:
         main_ax.plot(path_points[:, 0], path_points[:, 1], 'k--', alpha=0.5)
@@ -196,7 +192,6 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
         main_ax.set_xlim(np.min(all_x) - 0.2*x_range, np.max(all_x) + 0.2*x_range)
         main_ax.set_ylim(np.min(all_y) - 0.2*y_range, np.max(all_y) + 0.2*y_range)
 
-    
     horizon_lines = LineCollection([], colors='green', alpha=1.0, zorder=5)
     main_ax.add_collection(horizon_lines)
     
@@ -266,39 +261,6 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
     continuous_yaw = accumulate_angle(yaw_angles)
     
     time_text = main_ax.text(0.02, 0.95, '', transform=main_ax.transAxes)
-    
-    # Initialize subplots
-    velocity_lines = [axs[0].plot([], [], label=label)[0] for label in ['V_x', 'V_y']]
-    axs[0].set_xlabel('Time Step')
-    axs[0].set_ylabel('Velocity (m/s)')
-    axs[0].set_title('UAV Velocity')
-    axs[0].legend()
-    axs[0].grid()
-
-    yaw_line, = axs[1].plot([], [], 'g')
-    axs[1].set_xlabel('Time Step')
-    axs[1].set_ylabel('Yaw (radians)')
-    axs[1].set_title('UAV Yaw')
-    axs[1].grid()
-
-    input_lines = [axs[2].plot([], [], label=label)[0] for label in ['Acceleration_x', 'Acceleration_y', 'Yaw_rate', 'Speed']]
-    axs[2].set_xlabel('Time Step')
-    axs[2].set_ylabel('Input Value')
-    axs[2].set_title('Control Inputs')
-    axs[2].legend()
-    axs[2].grid()
-
-    theta_line, = axs[3].plot([], [], 'purple')
-    axs[3].set_xlabel('Time Step')
-    axs[3].set_ylabel('Theta')
-    axs[3].set_title('UAV Theta (Progress Along Path)')
-    axs[3].grid()
-
-    cost_line, = axs[4].plot([], [], 'orange')
-    axs[4].set_xlabel('Time Step')
-    axs[4].set_ylabel('Cost')
-    axs[4].set_title('MPC Cost')
-    axs[4].grid()
 
     def init():
         horizon_lines.set_segments([])
@@ -307,9 +269,7 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
         airplane.set_xy(airplane_coords)
         for arrow in wind_arrows:
             arrow.set_alpha(0)
-        for line in velocity_lines + input_lines + [yaw_line, theta_line, cost_line]:
-            line.set_data([], [])
-        return [horizon_lines, airplane, actual_trajectory, time_text] + wind_arrows + [wind_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
+        return [horizon_lines, airplane, actual_trajectory, time_text] + wind_arrows + [wind_text]
 
     def update(frame):
         nonlocal X, Y, lifetimes
@@ -356,33 +316,15 @@ def animate_horizons(horizons, plane_states, input_history, cost_history, N_hori
         actual_trajectory.set_data([state[0] for state in plane_states[:frame+1]],
                                    [state[1] for state in plane_states[:frame+1]])
         
-        time_text.set_text(f'Time: {current_time:.2f}s / {max_simulation_time:.2f}s\n'
-                           f'Horizon: {horizon_time:.2f}s')
+        time_text.set_text(f'Horizon: {horizon_time:.2f}s')
         
-        # Update subplots
-        for i, line in enumerate(velocity_lines):
-            line.set_data(range(frame+1), [state[2+i] for state in plane_states[:frame+1]])
-        
-        yaw_line.set_data(range(frame+1), [state[4] for state in plane_states[:frame+1]])
-        
-        for i, line in enumerate(input_lines):
-            line.set_data(range(frame+1), [input[i] for input in input_history[:frame+1]])
-        
-        theta_line.set_data(range(frame+1), [state[5] for state in plane_states[:frame+1]])
-        
-        cost_line.set_data(range(frame+1), cost_history[:frame+1])
-        
-        for ax in axs:
-            ax.relim()
-            ax.autoscale_view()
-        
-        return [horizon_lines, airplane, actual_trajectory, time_text] + wind_arrows + [wind_text] + velocity_lines + [yaw_line] + input_lines + [theta_line, cost_line]
+        return [horizon_lines, airplane, actual_trajectory, time_text] + wind_arrows + [wind_text]
 
     total_frames = len(horizons)
     anim = AnimationFunc(fig, update, frames=total_frames, init_func=init, blit=False, interval=interval)
     
     if save_animation:
-        anim.save('horizon_evolution.gif', writer='pillow')
+        anim.save('/home/mark/eth/Thesis/Presentation/horizon_evolution.gif', writer='pillow')
     
     plt.tight_layout()
     return anim
@@ -413,3 +355,56 @@ def plot_acceleration_tracking(state_history, input_history):
     plt.show()
 
     return fig
+
+
+def plot_inputs_and_states(state_history, input_history, state_constraints=[(23, 15), (-0.005, 0.005)], input_constraints=[(-0.4, 0.4), (-25.0, 25.0), (-np.pi/3, np.pi/3)]):
+    # Plot states
+    fig_states, axs_states = plt.subplots(2, 1, figsize=(12, 20))
+    state_labels = ['V_x', 'V_y']
+    state_ylims = [(10, 30), (-0.01, 0.01)]
+    for i, (label, ylim) in enumerate(zip(state_labels, state_ylims)):
+        axs_states[i].plot([state[i+2] for state in state_history], label=label)
+        axs_states[i].set_xlabel('Time Step')
+        axs_states[i].set_ylabel(label)
+        axs_states[i].set_title(f'UAV State: {label}')
+        axs_states[i].legend()
+        axs_states[i].grid(True)
+        axs_states[i].set_ylim(ylim)
+        
+        # Plot state constraints if provided
+        if state_constraints:
+            lower, upper = state_constraints[i]
+            axs_states[i].axhline(y=lower, color='r', linestyle='--', label='Lower Constraint')
+            axs_states[i].axhline(y=upper, color='g', linestyle='--', label='Upper Constraint')
+            axs_states[i].legend()
+
+    plt.savefig('/home/mark/eth/Thesis/Presentation/states.png')
+    plt.tight_layout()
+    plt.show()
+
+    # Plot inputs
+    fig_inputs, axs_inputs = plt.subplots(3, 1, figsize=(12, 20))
+    input_labels = ['Acceleration_x', 'Acceleration_y', 'Yaw_rate']
+    input_ylims = [(-2, 2), (-30, 30), (-1.5, 1.5)]
+    for i, (label, ylim) in enumerate(zip(input_labels, input_ylims)):
+        axs_inputs[i].plot([input[i] for input in input_history], label=label)
+        axs_inputs[i].set_xlabel('Time Step')
+        axs_inputs[i].set_ylabel(label)
+        axs_inputs[i].set_title(f'Control Input: {label}')
+        axs_inputs[i].legend()
+        axs_inputs[i].grid(True)
+        axs_inputs[i].set_ylim(ylim)
+        
+        # Plot input constraints if provided
+        if input_constraints:
+            lower, upper = input_constraints[i]
+            axs_inputs[i].axhline(y=lower, color='r', linestyle='--', label='Lower Constraint')
+            axs_inputs[i].axhline(y=upper, color='g', linestyle='--', label='Upper Constraint')
+            axs_inputs[i].legend()
+
+    plt.savefig('/home/mark/eth/Thesis/Presentation/inputs.png')
+    plt.tight_layout()
+    plt.show()
+
+
+    return fig_states, fig_inputs
