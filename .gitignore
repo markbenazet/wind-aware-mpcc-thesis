@@ -23,3 +23,6 @@ c_generated_code/
 
 # Ignore __init__.py files
 **/__init__.py
+
+# Ignore .pkl files
+*.pkl

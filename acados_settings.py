@@ -16,7 +16,7 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     Q_lag = 20.0
     R_1 = 1.0
     R_2 = 10.0
-    R_3 = 10.0
+    R_3 = 1.0
     R_4 = 15.0
     R_airspeed = 5.0
 
@@ -24,8 +24,11 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     mpc_dt = Tf / N_horizon
 
     # Increase number of parameters to include cost weights
-    ocp.parameter_values = np.zeros((5,1))
+    ocp.parameter_values = np.zeros((8,1))
     ocp.cost.cost_type = 'EXTERNAL'
+    last_u_1 = ocp.model.p[0]
+    last_u_2 = ocp.model.p[1]
+    last_u_3 = ocp.model.p[2]
 
     # States
     I_x = ocp.model.x[0]
@@ -49,12 +52,12 @@ def acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI):
     # Cost function
     c_eC = eC * Q_cont * eC
     c_eL = eL * Q_lag * eL
-    c_aX, c_aY = ocp.model.u[0] * R_1 * ocp.model.u[0], ocp.model.u[1] * R_2 * ocp.model.u[1]
-    c_yR = ocp.model.u[2] * R_3 * ocp.model.u[2]
+    c_aX, c_aY = (ocp.model.u[0] - last_u_1) * R_1 * (ocp.model.u[0] - last_u_1), (ocp.model.u[1] - last_u_2) * R_2 * (ocp.model.u[1] - last_u_2)
+    c_yR = (ocp.model.u[2] - last_u_3) * R_3 * (ocp.model.u[2] - last_u_3)
     c_vK = -ocp.model.u[3] * R_4  # Small weight to encourage forward motion
     c_airspeed = R_airspeed * e_airspeed
     
-    ocp.model.cost_expr_ext_cost = c_vK + c_eC + c_aX + c_aY + c_yR + c_eL + c_airspeed
+    ocp.model.cost_expr_ext_cost = c_vK + c_eC + c_aX +  c_yR + c_eL + c_airspeed + c_aY
     ocp.constraints.lbu = np.array([-0.4, -25.0, -np.pi/3,1.0])
     ocp.constraints.ubu = np.array([0.4, 25.0, np.pi/3, 50.0])
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])

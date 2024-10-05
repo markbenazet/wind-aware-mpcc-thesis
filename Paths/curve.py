@@ -77,7 +77,7 @@ class Path:
         else:
             return self.spline_phi_func(theta/self.total_length)
     
-    def project_to_path(self, x, y, yaw, dt, velocity_x, velocity_y, params, initial=True):
+    def project_to_path(self, x, y):
         x, y = float(x), float(y)
 
         def distance(t):
