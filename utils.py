@@ -424,7 +424,7 @@ def plot_trajectories(convergence_threshold=0.0, quadrant=None):
     # Dynamically determine the grid points
     start_x_values = df['start_x'].unique()
     start_y_values = df['start_y'].unique()
-    grid_points = [(x, y) for x in start_x_values for y in start_y_values if (x == 0 and y == 75)]
+    grid_points = [(x, y) for x in start_x_values for y in start_y_values]
 
     # Plot each trajectory
     for x_start, y_start in grid_points:
@@ -470,7 +470,7 @@ def plot_trajectories(convergence_threshold=0.0, quadrant=None):
     plt.scatter(start_x, start_y, color='red', s=10)
 
     # Plot the circular path (assuming it's centered at (0,0) with radius 200)
-    circle = plt.Circle((0, 0), 100, color='g', fill=False)
+    circle = plt.Circle((0, 0), 200, color='g', fill=False)
     plt.gca().add_artist(circle)
 
     # Mark the origin (0,0) differently

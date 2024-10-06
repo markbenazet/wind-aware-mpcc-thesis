@@ -28,15 +28,15 @@ class FixedWingLateralModel:
 
 
         # Parameters
-        p = cs.MX.sym('p', 5)
+        p = cs.MX.sym('p', 8)
         w = p[0:2]
         w_x, w_y = w[0], w[1]
         wn, zeta = p[2], p[3]  # natural frequency and damping ratio for ay dynamics
         tau = p[4]  # time constant for ax dynamics
 
         # Define the dynamics equations
-        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y
         dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_x
+        dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y
         dv_x_dt = ax + B_v_y*I_yaw_rate
         dv_y_dt = ay - B_v_x*I_yaw_rate
         dyaw_dt = I_yaw_rate

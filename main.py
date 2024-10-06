@@ -42,6 +42,7 @@ def run_simulation(x0, params, model, path, N_horizon, Tf, num_laps, max_simulat
         
         optimal_x, optimal_u = interpolate_horizon(x_opt, u_opt, mpc_dt, model)
         simulation_time += mpc_dt
+        params[6:9] = u_opt[0, 0:2].reshape(-1, 1)
     
     return np.array(state_history), np.array(input_history), np.array(cost_history)
 
@@ -82,12 +83,12 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 8.0
-    params = np.array([[-10.0], [-10.0], [2.0], [1.0], [0.1]])
-    max_simulation_time = 30.0
+    params = np.array([[-14.0], [-14.0], [2.0], [1.0], [0.1], [0.0], [0.0], [0.0]]) 
+    max_simulation_time = 60.0
 
     # Define the grid
-    grid_size = 75.0  # meters between grid points
-    grid_extent = 150  # meters in each direction from center
+    grid_size = 75 # meters between grid points
+    grid_extent = 300  # meters in each direction from center
     x_range = np.arange(-grid_extent, grid_extent + grid_size, grid_size)
     y_range = np.arange(-grid_extent, grid_extent + grid_size, grid_size)
 
@@ -100,7 +101,7 @@ def main():
 
     for x_start in x_range:
         for y_start in y_range:
-            initial_heading = calculate_initial_heading(x_start, y_start, 0.0, 0.0, 100.0)
+            initial_heading = calculate_initial_heading(x_start, y_start, 0.0, 0.0, 200.0)
             x0 = np.array([x_start, y_start, 20.0, 0.0, initial_heading, 0.0, 0.0, 0.0, 0.0])
             x0[5] = path.project_to_path(x0[0], x0[1], x0[5], Tf/N_horizon, x0[2], x0[3], params, initial=True) + 50.0
 
