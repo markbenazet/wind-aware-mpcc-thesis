@@ -31,12 +31,12 @@ def main():
     cost_history = []
     state_solver_history.append(x0[0:2])
     simulation_time = 0
-    max_simulation_time = 240.0
+    max_simulation_time = 120.0
 
     optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
     current_state = x0.copy()
 
-    while simulation_time < max_simulation_time:
+    while simulation_time < max_simulation_time or current_state[5] > path.total_length:
         x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver, current_state, params, N_horizon, model)
 
         horizon_history.append(x_opt)
