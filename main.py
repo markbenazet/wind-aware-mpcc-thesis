@@ -14,12 +14,13 @@ def main():
     path = Path(path_points, num_laps)
     N_horizon = 40
     Tf = 8.0
-    x0 = np.array([0.0, -100.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    params = np.array([[-14.0], [-14.0], [2.0], [1.0], [0.1], [0.0], [0.0], [0.0]]) 
+    x0 = np.array([150.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    params = np.array([[-10.0], [-10.0], [2.0], [1.0], [0.1], [0.0], [0.0], [0.0]]) 
     x0[5] = 0.0
 
     ocp_solver, _, mpc_dt,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=False)
-    _, fast_acados_integrator, _, _ = acados_settings(model, 10*N_horizon, Tf, x0, num_laps, use_RTI=False)
+    ocp_solver_rti,_,_,_ = acados_settings(model, N_horizon, Tf, x0, num_laps, use_RTI=True)
+    _, fast_acados_integrator, _, _ = acados_settings(model, 10*N_horizon, Tf, x0, num_laps, use_RTI=True)
     
     state_history = []
     state_history.append(x0)
@@ -36,7 +37,7 @@ def main():
     optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
     current_state = x0.copy()
 
-    while simulation_time < max_simulation_time or current_state[5] > path.total_length:
+    while current_state[5] < path.extended_length - 50:
         x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver, current_state, params, N_horizon, model)
 
         horizon_history.append(x_opt)
@@ -66,9 +67,10 @@ def main():
     vector_p = params[0:2]
 
     # u.plot_acceleration_tracking(state_history, input_history)
-    u.plot_uav_trajectory_and_state(sim_state_history, reference_history, horizon_history, sim_input_history, vector_p, cost_history)
+    # u.plot_uav_trajectory_and_state(sim_state_history, reference_history, horizon_history, sim_input_history, vector_p, cost_history)
 
-    # u.plot_inputs_and_states(sim_state_history, sim_input_history)
+    u.plot_plane_trajectory(sim_state_history, reference_history, wind_vector = vector_p)
+    u.plot_inputs_and_states(sim_state_history, sim_input_history)
 
     # anim = u.animate_horizons(horizon_history, sim_state_history, sim_input_history, cost_history, 
                         # N_horizon, max_simulation_time, Tf, mpc_dt, vector_p, 
