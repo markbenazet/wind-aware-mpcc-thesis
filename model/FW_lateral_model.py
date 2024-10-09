@@ -37,8 +37,8 @@ class FixedWingLateralModel:
         # Define the dynamics equations
         dy_dt = B_v_x * cs.cos(I_yaw) - B_v_y*cs.sin(I_yaw) + w_y
         dx_dt = B_v_x * cs.sin(I_yaw) + B_v_y*cs.cos(I_yaw) + w_x
-        dv_x_dt = ax - B_v_y*I_yaw_rate
-        dv_y_dt = ay + B_v_x*I_yaw_rate
+        dv_x_dt = ax + B_v_y*I_yaw_rate
+        dv_y_dt = ay - B_v_x*I_yaw_rate
         dyaw_dt = I_yaw_rate
         dtheta_dt = v_k
         day_dt = ay_dot

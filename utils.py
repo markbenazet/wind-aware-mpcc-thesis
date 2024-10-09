@@ -8,6 +8,7 @@ from matplotlib.transforms import Affine2D
 from matplotlib.patches import Polygon, FancyArrowPatch
 from matplotlib.widgets import Cursor
 from matplotlib.quiver import Quiver
+from matplotlib.gridspec import GridSpec
 import matplotlib.colors as colors
 import matplotlib.patches as patches
 
@@ -357,62 +358,33 @@ def plot_acceleration_tracking(state_history, input_history):
     return fig
 
 
-def plot_inputs_and_states(state_history, input_history, state_constraints=[(23, 15), (-0.005, 0.005)], input_constraints=[(-0.4, 0.4), (-20.0, 20.0), (-np.pi/3, np.pi/3), (1, 50)]):
-    # Plot states
-    fig_states, axs_states = plt.subplots(2, 1, figsize=(6, 12))
-    state_labels = ['V_x', 'V_y']
-    state_ylims = [(10, 30), (-0.01, 0.01)]
-    for i, (label, ylim) in enumerate(zip(state_labels, state_ylims)):
-        axs_states[i].plot([state[i+2] for state in state_history], label=label, linewidth=2)
-        axs_states[i].set_xlabel('Time Step', fontsize=14)
-        axs_states[i].set_ylabel(label, fontsize=14)
-        axs_states[i].set_title(f'UAV State: {label}', fontsize=16)
-        axs_states[i].legend(fontsize=12)
-        axs_states[i].grid(True, linestyle='--', alpha=0.7)
-        axs_states[i].set_ylim(ylim)
-        axs_states[i].tick_params(axis='both', which='major', labelsize=12)
-        
-        # Plot state constraints if provided
-        if state_constraints:
-            lower, upper = state_constraints[i]
-            axs_states[i].axhline(y=lower, color='r', linestyle='--', linewidth=2, label='Lower Constraint')
-            axs_states[i].axhline(y=upper, color='g', linestyle='--', linewidth=2, label='Upper Constraint')
-            axs_states[i].legend(fontsize=12)
+def create_combined_plot(state_history, input_history, reference_path, wind_vector=None,
+                         state_constraints=[(23, 15), (-0.005, 0.005)],
+                         input_constraints=[(-0.4, 0.4), (-20.0, 20.0), (-np.pi/3, np.pi/3), (0, 50)]):
+    # Create a figure with a 4x2 grid
+    fig = plt.figure(figsize=(8.27, 11.69))  # A4 size in inches, portrait orientation
+    gs = GridSpec(4, 2, figure=fig, height_ratios=[4, 1, 1, 1])
 
-    plt.savefig('/home/mark/eth/Thesis/Presentation/states.png', dpi=300, bbox_inches='tight')
+    # Trajectory plot (top row, spanning both columns)
+    ax_trajectory = fig.add_subplot(gs[0, :])
+    plot_plane_trajectory(ax_trajectory, state_history, reference_path, wind_vector)
+
+    # States plots (second row)
+    ax_states = [fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])]
+    plot_states(ax_states, state_history, state_constraints)
+
+    # Inputs plots (third and fourth rows)
+    ax_inputs = [fig.add_subplot(gs[2, 0]), fig.add_subplot(gs[2, 1]), 
+                 fig.add_subplot(gs[3, 0]), fig.add_subplot(gs[3, 1])]
+    plot_inputs(ax_inputs, input_history, input_constraints)
+
     plt.tight_layout()
+    plt.savefig('/home/mark/eth/Thesis/Report/combined_report_plots.png', dpi=600, bbox_inches='tight')
     plt.show()
 
-    # Plot inputs
-    fig_inputs, axs_inputs = plt.subplots(2, 2, figsize=(12, 12))
-    input_labels = ['Acceleration_x', 'Acceleration_y', 'Yaw_rate', 'Speed']
-    input_ylims = [(-2, 2), (-25, 25), (-1.5, 1.5), (-4,55)]
-    axs_inputs = axs_inputs.flatten()  # Flatten the array of axes for easier indexing
-    for i, (label, ylim) in enumerate(zip(input_labels, input_ylims)):
-        axs_inputs[i].plot([input[i] for input in input_history], label=label, linewidth=2)
-        axs_inputs[i].set_xlabel('Time Step', fontsize=14)
-        axs_inputs[i].set_ylabel(label, fontsize=14)
-        axs_inputs[i].set_title(f'Control Input: {label}', fontsize=16)
-        axs_inputs[i].legend(fontsize=12)
-        axs_inputs[i].grid(True, linestyle='--', alpha=0.7)
-        axs_inputs[i].set_ylim(ylim)
-        axs_inputs[i].tick_params(axis='both', which='major', labelsize=12)
-        
-        # Plot input constraints if provided
-        if input_constraints:
-            lower, upper = input_constraints[i]
-            axs_inputs[i].axhline(y=lower, color='r', linestyle='--', linewidth=2, label='Lower Constraint')
-            axs_inputs[i].axhline(y=upper, color='g', linestyle='--', linewidth=2, label='Upper Constraint')
-            axs_inputs[i].legend(fontsize=12)
+    return fig
 
-    plt.savefig('/home/mark/eth/Thesis/Presentation/inputs.png', dpi=300, bbox_inches='tight')
-    plt.tight_layout()
-    plt.show()
-
-    return fig_states, fig_inputs
-
-def plot_plane_trajectory(state_history, reference_path, wind_vector=None):
-    fig, ax = plt.subplots(figsize=(12, 12))
+def plot_plane_trajectory(ax, state_history, reference_path, wind_vector=None):
     
     # Plot plane trajectory
     ax.plot([state[0] for state in state_history], [state[1] for state in state_history], 'b-', linewidth=2, label='Plane Trajectory')
@@ -432,7 +404,7 @@ def plot_plane_trajectory(state_history, reference_path, wind_vector=None):
                 label='Wind Vector')
     
     # Load airplane coordinates
-    airplane_coords = create_airplane_polygon('airplane.csv', scale_factor=1.0)
+    airplane_coords = create_airplane_polygon('airplane.csv', scale_factor=1.5)
     
     # Plot airplane orientation every 20 meters
     distance_interval = 50.0
@@ -454,18 +426,48 @@ def plot_plane_trajectory(state_history, reference_path, wind_vector=None):
         
         previous_point = current_point
     
-    ax.set_xlabel('E [m]', fontsize=14)
-    ax.set_ylabel('N [m]', fontsize=14)
-    ax.set_title('Plane Trajectory', fontsize=16)
-    ax.legend(fontsize=12)
+    ax.set_xlabel('E [m]', fontsize=10)
+    ax.set_ylabel('N [m]', fontsize=10)
+    ax.set_title('Plane Trajectory', fontsize=12)
     ax.grid(True, linestyle='--', alpha=0.7)
-    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.tick_params(axis='both', which='major', labelsize=8)
 
     # Set equal scaling for both axes
     ax.set_aspect('equal', 'box')
-    
-    plt.tight_layout()
-    plt.savefig('/home/mark/eth/Thesis/Presentation/trajectory.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    return fig
+    ax.set_aspect(aspect='auto', adjustable='box')
+
+def plot_states(axs, state_history, state_constraints):
+    state_labels = ['V_x', 'V_y']
+    state_ylims = [(10, 30), (-0.01, 0.01)]
+    for i, (ax, label, ylim) in enumerate(zip(axs, state_labels, state_ylims)):
+        ax.plot([state[i+2] for state in state_history], label=label, linewidth=2)
+        ax.set_xlabel('Time Step', fontsize=10)
+        ax.set_ylabel(label, fontsize=10)
+        ax.set_title(f'UAV State: {label}', fontsize=12)
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.set_ylim(ylim)
+        ax.tick_params(axis='both', which='major', labelsize=8)
+        
+        # Plot state constraints
+        if state_constraints:
+            lower, upper = state_constraints[i]
+            ax.axhline(y=lower, color='r', linestyle='--', linewidth=2, label='Lower Constraint')
+            ax.axhline(y=upper, color='g', linestyle='--', linewidth=2, label='Upper Constraint')
+
+def plot_inputs(axs, input_history, input_constraints):
+    input_labels = ['Acceleration_x', 'Acceleration_y', 'Yaw_rate', 'Speed']
+    input_ylims = [(-2, 2), (-25, 25), (-1.5, 1.5), (-4, 55)]
+    for i, (ax, label, ylim) in enumerate(zip(axs, input_labels, input_ylims)):
+        ax.plot([input[i] for input in input_history], label=label, linewidth=2)
+        ax.set_xlabel('Time Step', fontsize=10)
+        ax.set_ylabel(label, fontsize=10)
+        ax.set_title(f'Control Input: {label}', fontsize=12)
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.set_ylim(ylim)
+        ax.tick_params(axis='both', which='major', labelsize=8)
+        
+        # Plot input constraints
+        if input_constraints:
+            lower, upper = input_constraints[i]
+            ax.axhline(y=lower, color='r', linestyle='--', linewidth=2, label='Lower Constraint')
+            ax.axhline(y=upper, color='g', linestyle='--', linewidth=2, label='Upper Constraint')   

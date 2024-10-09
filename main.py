@@ -32,13 +32,13 @@ def main():
     cost_history = []
     state_solver_history.append(x0[0:2])
     simulation_time = 0
-    max_simulation_time = 120.0
+    max_simulation_time = 20.0
 
     optimal_x, optimal_u = warm_start(x0, ocp_solver, N_horizon, path, model, params)
     current_state = x0.copy()
 
-    while current_state[5] < path.extended_length - 50:
-        x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver, current_state, params, N_horizon, model)
+    while current_state[5] < path.total_length -20:
+        x_opt, u_opt = call_mpcc(optimal_x, optimal_u, ocp_solver_rti, current_state, params, N_horizon, model)
 
         horizon_history.append(x_opt)
         state_solver_history.append(x_opt[1])
@@ -68,9 +68,8 @@ def main():
 
     # u.plot_acceleration_tracking(state_history, input_history)
     # u.plot_uav_trajectory_and_state(sim_state_history, reference_history, horizon_history, sim_input_history, vector_p, cost_history)
-
-    u.plot_plane_trajectory(sim_state_history, reference_history, wind_vector = vector_p)
-    u.plot_inputs_and_states(sim_state_history, sim_input_history)
+    
+    u.create_combined_plot(sim_state_history, sim_input_history, reference_history, wind_vector=vector_p)
 
     # anim = u.animate_horizons(horizon_history, sim_state_history, sim_input_history, cost_history, 
                         # N_horizon, max_simulation_time, Tf, mpc_dt, vector_p, 
