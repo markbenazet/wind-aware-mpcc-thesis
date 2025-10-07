@@ -1,24 +1,16 @@
-# MPCC (Model Predictive Contouring Control) for Fixed-Wing UAV
+# Wind-Aware MPCC for Fixed-Wing UAV Guidance
+
+**Bachelor Thesis** | ETH Zurich | Autonomous Systems Lab | Fall 2024
 
 ## Overview
-This project implements a Model Predictive Contouring Control (MPCC) algorithm for a fixed-wing UAV. It aims to enable the UAV to follow predefined paths while considering various constraints and optimizing its trajectory.
 
-## Features
-- Path following for fixed-wing UAV
-- Wind disturbance consideration
-- Visualization of UAV trajectory and states
+This thesis develops a **Model Predictive Contouring Control (MPCC)** framework for fixed-wing UAV path following in high wind conditions. Unlike traditional methods (e.g., L1 guidance), MPCC can:
 
-## Requirements
-- Python 3.x
-- CasADi
-- NumPy
-- SciPy
-- Matplotlib
-- Acados
+- Handle winds up to 20 m/s while maintaining path accuracy
+- Enforce strict safety constraints (acceleration, bank angle limits)
+- Adaptively slow down or move backward in extreme tailwinds
 
-## Structure
-- `main.py`: Main execution script
-- `acados_settings.py`: Acados OCP solver configuration
-- `FW_lateral_model.py`: Fixed-wing UAV model definition
-- `curve.py`: Path generation and management
-- `utils.py`: Utility functions for visualization and data processing
+**Supervisors**: David Rohr, Dr. Andrea Carron  
+**Professor**: Prof. Dr. Roland Siegwart
+
+**Key Innovation**: Separates geometric path following from temporal progression, allowing the controller to dynamically balance safety, path accuracy, and forward progress.
