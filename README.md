@@ -12,5 +12,3 @@ This thesis develops a **Model Predictive Contouring Control (MPCC)** framework 
 
 **Supervisors**: David Rohr, Dr. Andrea Carron  
 **Professor**: Prof. Dr. Roland Siegwart
-
-**Key Innovation**: Separates geometric path following from temporal progression, allowing the controller to dynamically balance safety, path accuracy, and forward progress.
